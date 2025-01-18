@@ -62,8 +62,10 @@ def get_pirate_score(params: SimulationParams, pirate: Pirate, cs: List[str]):
         is_allergy = course in pirate.allergy_courses
 
         if is_fav and not is_allergy:
-            score += (params.favorite_upper - pirate.strength) * random.random()
-        elif is_allergy and not is_fav:
+            score += (
+                params.favorite_upper - pirate.strength - pirate.weight**0.5
+            ) * random.random()
+        elif is_allergy:
             score += (params.allergy_upper - pirate.strength) * random.random()
         else:
             score += (params.normal_upper - pirate.strength) * random.random()
@@ -88,7 +90,7 @@ def average_log_ratio_difference(simulated, historical):
 
 
 if __name__ == "__main__":
-    params = SimulationParams(favorite_upper=135, allergy_upper=170, normal_upper=155)
+    params = SimulationParams(favorite_upper=145, allergy_upper=170, normal_upper=155)
     simulated_win_rates = get_simulation_win_rates(params)
 
     for pirate in sorted(pirates, key=lambda p: p.win_rate):
