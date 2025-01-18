@@ -7,7 +7,7 @@ from typing import List
 from concurrent.futures import ProcessPoolExecutor
 import os
 
-DAYS = 150000
+DAYS = 1000000
 
 
 @dataclass(frozen=True)
