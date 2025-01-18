@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import math
 import random
 from pirates import pirates, Pirate, courses
@@ -7,14 +8,32 @@ from typing import List
 DAYS = 150000
 
 
-def get_simulation_score():
+@dataclass(frozen=True)
+class SimulationParams:
+    favorite_upper: int
+    allergy_upper: int
+    normal_upper: int
+
+
+def tweak_params(params: SimulationParams):
+    return SimulationParams(
+        favorite_upper=params.favorite_upper + random.randint(-20, 20),
+        allergy_upper=params.allergy_upper + random.randint(-20, 20),
+        normal_upper=params.normal_upper + random.randint(-20, 20),
+    )
+
+
+def get_simulation_score(params: SimulationParams):
     pirates_mine = list(pirates)
     wins = defaultdict(int)
     for _ in range(DAYS):
         random.shuffle(pirates_mine)
         groups = [pirates_mine[i : i + 4] for i in range(0, len(pirates_mine), 4)]
         for group in groups:
-            winner = get_group_winner(group)
+            winner = get_group_winner(
+                params,
+                group,
+            )
             wins[winner.name] += 1
 
     actual_win_rates = [pirate.win_rate for pirate in pirates]
@@ -23,26 +42,24 @@ def get_simulation_score():
     return average_log_ratio_difference(simulated_win_rates, actual_win_rates)
 
 
-def get_group_winner(group: List[Pirate]):
+def get_group_winner(params: SimulationParams, group: List[Pirate]):
     cs = random.sample(courses, 10)
-    winner = max(group, key=lambda pirate: get_pirate_score(pirate, cs))
+    winner = max(group, key=lambda pirate: get_pirate_score(params, pirate, cs))
     return winner
 
 
-def get_pirate_score(pirate: Pirate, cs: List[str]):
+def get_pirate_score(params: SimulationParams, pirate: Pirate, cs: List[str]):
     score = 0
     for course in cs:
         is_fav = course in pirate.favorite_courses
         is_allergy = course in pirate.allergy_courses
 
         if is_fav and not is_allergy:
-            score += (
-                125 - pirate.strength * 0.8 - pirate.weight * 0.1
-            ) * random.random()
+            score += (params.favorite_upper - pirate.strength) * random.random()
         elif is_allergy and not is_fav:
-            score += (170 - pirate.strength) * random.random()
+            score += (params.allergy_upper - pirate.strength) * random.random()
         else:
-            score += (155 - pirate.strength) * random.random()
+            score += (params.normal_upper - pirate.strength) * random.random()
     return -score
 
 
@@ -63,4 +80,16 @@ def average_log_ratio_difference(simulated, historical):
     return total_log_diff / count
 
 
-print("Log ratio difference %.3f" % get_simulation_score())
+def hill_climbing(params: SimulationParams):
+    best_score = get_simulation_score(params)
+    for _ in range(1000):
+        candidate_params = tweak_params(params)
+        candidate_score = get_simulation_score(params)
+        print("Candidate: %.3f\t%s" % (candidate_score, str(candidate_params)))
+        if candidate_score < best_score:
+            best_score = candidate_score
+            params = candidate_params
+            print("New best: %.3f\t%s" % (candidate_score, str(candidate_params)))
+
+
+hill_climbing(SimulationParams(favorite_upper=135, allergy_upper=170, normal_upper=155))
