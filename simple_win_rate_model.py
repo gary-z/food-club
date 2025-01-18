@@ -4,7 +4,7 @@ from pirates import pirates, Pirate, courses
 from collections import defaultdict, namedtuple
 from typing import List
 
-DAYS = 30000
+DAYS = 50000
 
 wins = defaultdict(int)
 FOOD_MULTIPLIER = 2
@@ -26,7 +26,9 @@ def get_pirate_score(pirate: Pirate, cs: List[str]):
         is_allergy = course in pirate.allergy_courses
 
         if is_fav and not is_allergy:
-            score += (155 - pirate.strength - pirate.weight / 10) * random.random()
+            score += (135 - pirate.strength) * random.random()
+        elif is_allergy and not is_fav:
+            score += (175 - pirate.strength) * random.random()
         else:
             score += (155 - pirate.strength) * random.random()
     return -score
