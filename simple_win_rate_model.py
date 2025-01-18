@@ -4,6 +4,8 @@ import random
 from pirates import pirates, Pirate, courses
 from collections import defaultdict, namedtuple
 from typing import List
+from concurrent.futures import ProcessPoolExecutor
+import os
 
 DAYS = 150000
 
@@ -15,31 +17,36 @@ class SimulationParams:
     normal_upper: int
 
 
-def tweak_params(params: SimulationParams):
-    return SimulationParams(
-        favorite_upper=params.favorite_upper + random.randint(-20, 20),
-        allergy_upper=params.allergy_upper + random.randint(-20, 20),
-        normal_upper=params.normal_upper + random.randint(-20, 20),
-    )
-
-
-def get_simulation_score(params: SimulationParams):
-    pirates_mine = list(pirates)
+def _simulate_chunk(params, days):
     wins = defaultdict(int)
-    for _ in range(DAYS):
-        random.shuffle(pirates_mine)
-        groups = [pirates_mine[i : i + 4] for i in range(0, len(pirates_mine), 4)]
+    pirates_mine_local = list(pirates)
+    for _ in range(days):
+        random.shuffle(pirates_mine_local)
+        groups = [
+            pirates_mine_local[i : i + 4] for i in range(0, len(pirates_mine_local), 4)
+        ]
         for group in groups:
-            winner = get_group_winner(
-                params,
-                group,
-            )
+            winner = get_group_winner(params, group)
             wins[winner.name] += 1
+    return wins
 
-    actual_win_rates = [pirate.win_rate for pirate in pirates]
-    simulated_win_rates = [wins[pirate.name] / DAYS for pirate in pirates]
 
-    return average_log_ratio_difference(simulated_win_rates, actual_win_rates)
+def get_simulation_win_rates(params: SimulationParams):
+    n_procs = n_procs = os.cpu_count()
+    iterations = DAYS
+    iterations -= iterations % n_procs
+    chunk_size = iterations // n_procs
+    with ProcessPoolExecutor(max_workers=n_procs) as executor:
+        # Launch parallel tasks, each simulating a portion of DAYS
+        results = list(
+            executor.map(_simulate_chunk, [params] * n_procs, [chunk_size] * n_procs)
+        )
+    # Aggregate the results
+    total_wins = defaultdict(int)
+    for r in results:
+        for pirate_name, count in r.items():
+            total_wins[pirate_name] += count
+    return {p.name: total_wins[p.name] / iterations for p in pirates}
 
 
 def get_group_winner(params: SimulationParams, group: List[Pirate]):
@@ -80,16 +87,26 @@ def average_log_ratio_difference(simulated, historical):
     return total_log_diff / count
 
 
-def hill_climbing(params: SimulationParams):
-    best_score = get_simulation_score(params)
-    for _ in range(1000):
-        candidate_params = tweak_params(params)
-        candidate_score = get_simulation_score(params)
-        print("Candidate: %.3f\t%s" % (candidate_score, str(candidate_params)))
-        if candidate_score < best_score:
-            best_score = candidate_score
-            params = candidate_params
-            print("New best: %.3f\t%s" % (candidate_score, str(candidate_params)))
+if __name__ == "__main__":
+    params = SimulationParams(favorite_upper=135, allergy_upper=170, normal_upper=155)
+    simulated_win_rates = get_simulation_win_rates(params)
 
+    for pirate in sorted(pirates, key=lambda p: p.win_rate):
+        print(
+            "%.2f\t%.2f\t%d\t%d\t%s"
+            % (
+                pirate.win_rate,
+                simulated_win_rates[pirate.name],
+                len(pirate.favorite_courses),
+                len(pirate.allergy_courses),
+                pirate.name,
+            )
+        )
 
-hill_climbing(SimulationParams(favorite_upper=135, allergy_upper=170, normal_upper=155))
+    print(
+        "Log ratio avg %.3f"
+        % average_log_ratio_difference(
+            [p.win_rate for p in pirates],
+            [simulated_win_rates[p.name] for p in pirates],
+        ),
+    )
