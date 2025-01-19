@@ -4,9 +4,12 @@ from pirates import courses, pirates, arenas
 days = []
 
 for i in range(3600, 4900 + 1):
-    with open("historical/Match_3600.txt", "r", encoding="utf-8") as f:
-        content = f.read()
-        soup = BeautifulSoup(markup=content, features="html.parser")
+    try:
+        with open("historical/Match_%s.txt" % i, "r", encoding="utf-8") as f:
+            content = f.read()
+            soup = BeautifulSoup(markup=content, features="html.parser")
+    except FileNotFoundError:
+        continue
     table = soup.find(name="table")
     menus = []
     for menu_soup in soup.find_all(attrs={"class": "foods"}):
