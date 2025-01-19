@@ -16,6 +16,11 @@ class Arena:
     pirates: List[PirateOdds]
 
 
+@dataclass(frozen=True)
+class HistoricalArena(Arena):
+    winner: str
+
+
 def parse_historical_data(json_str):
     return [parse_day(day) for day in json.loads(json_str)]
 
@@ -25,10 +30,11 @@ def parse_day(arenas):
 
 
 def parse_arena(arena):
-    return Arena(
+    return HistoricalArena(
         arena_name=arena["arena_name"],
         foods=arena["foods"],
         pirates=[parse_pirate(pirate) for pirate in arena["pirates"]],
+        winner=arena["winner"],
     )
 
 
