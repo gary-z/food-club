@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import math
 import random
 from pirates import pirates, Pirate, courses
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, Counter
 from typing import List
 from concurrent.futures import ProcessPoolExecutor
 import os
@@ -26,7 +26,7 @@ def _simulate_chunk(params, days):
             pirates_mine_local[i : i + 4] for i in range(0, len(pirates_mine_local), 4)
         ]
         for group in groups:
-            winner = get_group_winner(params, group)
+            winner = get_group_winner(params, group, random.sample(courses, k=10))
             wins[winner.name] += 1
     return wins
 
@@ -49,9 +49,8 @@ def get_simulation_win_rates(params: SimulationParams):
     return {p.name: total_wins[p.name] / iterations for p in pirates}
 
 
-def get_group_winner(params: SimulationParams, group: List[Pirate]):
-    cs = random.sample(courses, 10)
-    winner = max(group, key=lambda pirate: get_pirate_score(params, pirate, cs))
+def get_group_winner(params: SimulationParams, group: List[Pirate], courses: List[str]):
+    winner = max(group, key=lambda pirate: get_pirate_score(params, pirate, courses))
     return winner
 
 
@@ -90,8 +89,26 @@ def average_log_ratio_difference(simulated, historical):
     return total_log_diff / count
 
 
+def get_default_params():
+    return SimulationParams(favorite_upper=145, allergy_upper=170, normal_upper=155)
+
+
+def get_arena_win_probabilities(
+    arena_pirate_names: List[str], arena_courses: List[str], num_iterations=50000
+):
+    pirates_by_name = {pirate.name: pirate for pirate in pirates}
+    arena_pirates = [pirates_by_name[pirate_name] for pirate_name in arena_pirate_names]
+    win_counts = Counter(
+        get_group_winner(get_default_params(), arena_pirates, arena_courses).name
+        for _ in range(num_iterations)
+    )
+    return {
+        pirate_name: count / num_iterations for pirate_name, count in win_counts.items()
+    }
+
+
 if __name__ == "__main__":
-    params = SimulationParams(favorite_upper=145, allergy_upper=170, normal_upper=155)
+    params = get_default_params()
     simulated_win_rates = get_simulation_win_rates(params)
 
     for pirate in sorted(pirates, key=lambda p: p.win_rate):
@@ -113,3 +130,5 @@ if __name__ == "__main__":
             [simulated_win_rates[p.name] for p in pirates],
         ),
     )
+
+__all__ = "get_arena_win_probabilities"

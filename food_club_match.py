@@ -43,10 +43,3 @@ def parse_pirate(pirate):
 
 
 __all__ = ["PirateOdds", "Arena"]
-
-
-if __name__ == "__main__":
-    with open("historical_matches.json", "r", encoding="utf-8") as f:
-        json_str = f.read()
-    historical_data = parse_historical_data(json_str)
-    print(historical_data[0])
