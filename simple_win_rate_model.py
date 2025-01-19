@@ -57,14 +57,14 @@ def get_group_winner(params: SimulationParams, group: List[Pirate]):
 
 def get_pirate_score(params: SimulationParams, pirate: Pirate, cs: List[str]):
     score = 0
-    weight_class = pirate.weight // 100
+    weight_class = pirate.weight // 96
     for course in cs:
         is_fav = course in pirate.favorite_courses
         is_allergy = course in pirate.allergy_courses
 
         if is_fav and not is_allergy:
             score += (
-                params.favorite_upper - pirate.strength - weight_class * 12
+                params.favorite_upper - pirate.strength - weight_class * 14
             ) * random.random()
         elif is_allergy:
             score += (params.allergy_upper - pirate.strength) * random.random()
