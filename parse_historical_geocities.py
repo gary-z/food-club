@@ -1,4 +1,4 @@
-from pirates import pirates, courses, arenas
+from pirates import PIRATES, COURSES, ARENAS
 import json
 
 food_id_to_name = {
@@ -50,14 +50,14 @@ def load_from_geo_cities_json(json_str):
     arena_datas = []
 
     for food_ids, pirate_ids, winner_index, opening_odds, arena_name in zip(
-        raw["foods"], raw["pirates"], raw["winners"], raw["openingOdds"], arenas
+        raw["foods"], raw["pirates"], raw["winners"], raw["openingOdds"], ARENAS
     ):
         foods = [food_id_to_name[food_id] for food_id in food_ids]
         for f in foods:
-            assert f in courses
+            assert f in COURSES
 
         pirate_odds = [
-            {"name": pirates[pirate_id - 1].name, "odds": opening_odd}
+            {"name": PIRATES[pirate_id - 1].name, "odds": opening_odd}
             for pirate_id, opening_odd in zip(pirate_ids, opening_odds[1:])
         ]
         assert len(pirate_odds) == 4

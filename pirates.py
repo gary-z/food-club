@@ -238,7 +238,7 @@ def get_courses_matching_categories(categories):
     )
 
 
-pirates = tuple(
+PIRATES = tuple(
     Pirate(
         name=pirate.name,
         weight=pirate.weight,
@@ -250,8 +250,8 @@ pirates = tuple(
     for pirate in pirates_internal
 )
 
-courses = tuple(courses_to_categories)
+COURSES = tuple(courses_to_categories)
 
-arenas = ("Shipwreck", "Lagoon", "Treasure Island", "Hidden Cove", "Harpoon Harry's")
+ARENAS = ("Shipwreck", "Lagoon", "Treasure Island", "Hidden Cove", "Harpoon Harry's")
 
-__all__ = ["pirates", "arenas", "courses", "Pirate"]
+__all__ = ["PIRATES", "ARENAS", "COURSES", "Pirate"]

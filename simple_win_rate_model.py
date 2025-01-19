@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import math
 import random
-from pirates import pirates, Pirate, courses
+from pirates import PIRATES, Pirate, COURSES
 from collections import defaultdict, namedtuple, Counter
 from typing import List
 from concurrent.futures import ProcessPoolExecutor
@@ -19,14 +19,14 @@ class SimulationParams:
 
 def _simulate_chunk(params, days):
     wins = defaultdict(int)
-    pirates_mine_local = list(pirates)
+    pirates_mine_local = list(PIRATES)
     for _ in range(days):
         random.shuffle(pirates_mine_local)
         groups = [
             pirates_mine_local[i : i + 4] for i in range(0, len(pirates_mine_local), 4)
         ]
         for group in groups:
-            winner = get_group_winner(params, group, random.sample(courses, k=10))
+            winner = get_group_winner(params, group, random.sample(COURSES, k=10))
             wins[winner.name] += 1
     return wins
 
@@ -46,7 +46,7 @@ def get_simulation_win_rates(params: SimulationParams):
     for r in results:
         for pirate_name, count in r.items():
             total_wins[pirate_name] += count
-    return {p.name: total_wins[p.name] / iterations for p in pirates}
+    return {p.name: total_wins[p.name] / iterations for p in PIRATES}
 
 
 def get_group_winner(params: SimulationParams, group: List[Pirate], courses: List[str]):
@@ -96,7 +96,7 @@ def get_default_params():
 def get_arena_win_probabilities(
     arena_pirate_names: List[str], arena_courses: List[str], num_iterations=50000
 ):
-    pirates_by_name = {pirate.name: pirate for pirate in pirates}
+    pirates_by_name = {pirate.name: pirate for pirate in PIRATES}
     arena_pirates = [pirates_by_name[pirate_name] for pirate_name in arena_pirate_names]
     win_counts = Counter(
         get_group_winner(get_default_params(), arena_pirates, arena_courses).name
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     params = get_default_params()
     simulated_win_rates = get_simulation_win_rates(params)
 
-    for pirate in sorted(pirates, key=lambda p: p.win_rate):
+    for pirate in sorted(PIRATES, key=lambda p: p.win_rate):
         print(
             "%.2f\t%.2f\t%d\t%d\t%s"
             % (
@@ -126,8 +126,8 @@ if __name__ == "__main__":
     print(
         "Log ratio avg %.3f"
         % average_log_ratio_difference(
-            [p.win_rate for p in pirates],
-            [simulated_win_rates[p.name] for p in pirates],
+            [p.win_rate for p in PIRATES],
+            [simulated_win_rates[p.name] for p in PIRATES],
         ),
     )
 
