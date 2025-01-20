@@ -7,7 +7,7 @@ from typing import List
 from concurrent.futures import ProcessPoolExecutor
 import os
 
-DAYS = 1000000
+DAYS = 2000000
 
 
 @dataclass(frozen=True)
@@ -56,19 +56,21 @@ def get_group_winner(params: SimulationParams, group: List[Pirate], courses: Lis
 
 def get_pirate_score(params: SimulationParams, pirate: Pirate, cs: List[str]):
     score = 0
-    weight_class = pirate.weight // 96
     for course in cs:
         is_fav = course in pirate.favorite_courses
         is_allergy = course in pirate.allergy_courses
 
-        if is_fav and not is_allergy:
-            score += (
-                params.favorite_upper - pirate.strength - weight_class * 14
-            ) * random.random()
-        elif is_allergy:
-            score += (params.allergy_upper - pirate.strength) * random.random()
-        else:
-            score += (params.normal_upper - pirate.strength) * random.random()
+        time_to_finish_course = (
+            params.normal_upper - pirate.strength - 5
+        ) * random.random()
+
+        if is_allergy:
+            time_to_finish_course += 15
+        elif is_fav:
+            time_to_finish_course -= 10
+
+        score += time_to_finish_course
+
     return -score
 
 
@@ -90,7 +92,7 @@ def average_log_ratio_difference(simulated, historical):
 
 
 def get_default_params():
-    return SimulationParams(favorite_upper=145, allergy_upper=170, normal_upper=155)
+    return SimulationParams(favorite_upper=140, allergy_upper=170, normal_upper=155)
 
 
 def get_arena_win_probabilities(
