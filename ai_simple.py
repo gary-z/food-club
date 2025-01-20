@@ -62,7 +62,8 @@ def process_day(args):
     i, day_arenas = args
     bets = make_bets(day_arenas)
     total_payout = sum(get_payout(bet, day_arenas) for bet in bets)
-    return i, (total_payout - len(bets))
+    expected_payout = sum(bet.win_probability * bet.payout for bet in bets)
+    return i, total_payout - len(bets), expected_payout - len(bets)
 
 
 if __name__ == "__main__":
@@ -70,9 +71,9 @@ if __name__ == "__main__":
         json_str = f.read()
     historical_data = parse_historical_data(json_str)
     random.shuffle(historical_data)
-    lock = threading.Lock()
     net_gains = 0
     days_done = 0
+    net_expected = 0
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = [
@@ -81,9 +82,12 @@ if __name__ == "__main__":
         ]
 
         for future in concurrent.futures.as_completed(futures):
-            i, delta = future.result()
-            with lock:
-                net_gains += delta
-                days_done += 1
-                avg_gains = net_gains / days_done
-            print(f"Day {i} finished, delta={delta}, avg_gains={avg_gains:.1f}")
+            i, delta, expected_payout = future.result()
+            net_gains += delta
+            net_expected += expected_payout
+            days_done += 1
+            avg_gains = net_gains / days_done
+            expected_gains = net_expected / days_done
+            print(
+                f"Day {i} finished, delta={delta}, avg_gains={avg_gains:.1f}, expected_gains={expected_gains:1f}"
+            )
