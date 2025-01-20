@@ -63,7 +63,7 @@ def process_day(args):
     bets = make_bets(day_arenas)
     total_payout = sum(get_payout(bet, day_arenas) for bet in bets)
     expected_payout = sum(bet.win_probability * bet.payout for bet in bets)
-    return i, total_payout - len(bets), expected_payout - len(bets)
+    return i, total_payout, expected_payout
 
 
 if __name__ == "__main__":
