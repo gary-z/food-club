@@ -4,6 +4,10 @@ from food_club_match import Arena, parse_historical_data, HistoricalArena
 from simple_win_rate_model import get_arena_win_probabilities
 import itertools
 
+import concurrent.futures
+import threading
+import random
+
 
 @dataclass(frozen=True)
 class Bet:
@@ -15,14 +19,14 @@ class Bet:
 def make_bets(arenas: List[Arena], max_odds=60):
     arena_win_probabilities = {
         arena.arena_name: get_arena_win_probabilities(
-            [pirate.name for pirate in arena.pirates], arena.foods, 10000
+            [pirate.name for pirate in arena.pirates], arena.foods, 30000
         )
         for arena in arenas
     }
 
     # (expected_winning, dict[arena_name -> pirate])
     possible_bets = []
-    for num_arenas_to_bet_on in range(1, 5):  # avoid 5 arena bets
+    for num_arenas_to_bet_on in range(1, len(arenas) + 1):
         for arenas_to_be_on in itertools.combinations(arenas, num_arenas_to_bet_on):
             for pirates_to_bet_on in itertools.product(
                 *(arena.pirates for arena in arenas_to_be_on)
@@ -54,14 +58,32 @@ def get_payout(bet: Bet, arenas: List[HistoricalArena]):
     return 0
 
 
+def process_day(args):
+    i, day_arenas = args
+    bets = make_bets(day_arenas)
+    total_payout = sum(get_payout(bet, day_arenas) for bet in bets)
+    return i, (total_payout - len(bets))
+
+
 if __name__ == "__main__":
     with open("historical_matches.json", "r", encoding="utf-8") as f:
         json_str = f.read()
     historical_data = parse_historical_data(json_str)
+    random.shuffle(historical_data)
+    lock = threading.Lock()
     net_gains = 0
-    for i, day_arenas in enumerate(historical_data):
-        bets = make_bets(day_arenas)
-        total_payout = sum(get_payout(bet, day_arenas) for bet in bets)
-        delta = total_payout - 10
-        net_gains += delta
-        print("%d\t%.1f" % (delta, net_gains / (i + 1)))
+    days_done = 0
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = [
+            executor.submit(process_day, (i, day_arenas))
+            for i, day_arenas in enumerate(historical_data)
+        ]
+
+        for future in concurrent.futures.as_completed(futures):
+            i, delta = future.result()
+            with lock:
+                net_gains += delta
+                days_done += 1
+                avg_gains = net_gains / days_done
+            print(f"Day {i} finished, delta={delta}, avg_gains={avg_gains:.1f}")
