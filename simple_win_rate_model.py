@@ -54,20 +54,20 @@ def get_group_winner(params: SimulationParams, group: List[Pirate], courses: Lis
     return winner
 
 
-def get_pirate_score(params: SimulationParams, pirate: Pirate, cs: List[str]):
+def get_pirate_score(params: SimulationParams, pirate: Pirate, courses: List[str]):
+    strength_effective = pirate.strength
+    num_allergy = sum(course in pirate.allergy_courses for course in courses)
+    num_favs = sum(
+        course in pirate.favorite_courses and course not in pirate.allergy_courses
+        for course in courses
+    )
+
+    strength_effective += 2 * num_favs
+    strength_effective -= 3 * num_allergy
+
     score = 0
-    for course in cs:
-        is_fav = course in pirate.favorite_courses
-        is_allergy = course in pirate.allergy_courses
-
-        time_to_finish_course = (
-            params.normal_upper - pirate.strength - 5
-        ) * random.random()
-
-        if is_allergy:
-            time_to_finish_course += 15
-        elif is_fav:
-            time_to_finish_course -= 10
+    for course in range(5):
+        time_to_finish_course = (125 - strength_effective) * random.random()
 
         score += time_to_finish_course
 
