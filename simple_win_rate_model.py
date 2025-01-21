@@ -66,8 +66,8 @@ def get_pirate_score(params: SimulationParams, pirate: Pirate, courses: List[str
     strength_effective -= 3.0 * num_allergy
 
     score = 0
-    for course in range(4):
-        time_to_finish_course = (120 - strength_effective) * random.random()
+    for course in range(3):
+        time_to_finish_course = (112.5 - strength_effective) * random.random()
 
         score += time_to_finish_course
 
