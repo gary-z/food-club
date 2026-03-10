@@ -1,0 +1,412 @@
+{
+  "pirates": [
+    {
+      "name": "Scurvy Dan the Blade",
+      "weight": 166,
+      "strength": 87,
+      "win_rate": 0.4746026054738855,
+      "favorites": [
+        "Salty foods",
+        "Meats"
+      ],
+      "allergies": [
+        "Candy"
+      ]
+    },
+    {
+      "name": "Young Sproggie",
+      "weight": 112,
+      "strength": 73,
+      "win_rate": 0.19507530480516375,
+      "favorites": [
+        "Meats",
+        "Neggs"
+      ],
+      "allergies": [
+        "Gross foods"
+      ]
+    },
+    {
+      "name": "Orvinn the First Mate",
+      "weight": 221,
+      "strength": 52,
+      "win_rate": 0.10840205569499223,
+      "favorites": [
+        "Candy",
+        "Slushies",
+        "Pizza"
+      ],
+      "allergies": [
+        "Fruits"
+      ]
+    },
+    {
+      "name": "Lucky McKyriggan",
+      "weight": 182,
+      "strength": 82,
+      "win_rate": 0.27716027249910363,
+      "favorites": [
+        "Gross foods"
+      ],
+      "allergies": [
+        "Pizza"
+      ]
+    },
+    {
+      "name": "Sir Edmund Ogletree",
+      "weight": 177,
+      "strength": 79,
+      "win_rate": 0.2700215156586182,
+      "favorites": [
+        "Dairy"
+      ],
+      "allergies": [
+        "Breads"
+      ]
+    },
+    {
+      "name": "Peg Leg Percival",
+      "weight": 202,
+      "strength": 73,
+      "win_rate": 0.14212287831699738,
+      "favorites": [
+        "Spicy foods"
+      ],
+      "allergies": [
+        "Smoothies"
+      ]
+    },
+    {
+      "name": "Bonnie Pip Culliford",
+      "weight": 116,
+      "strength": 76,
+      "win_rate": 0.23497071829807578,
+      "favorites": [
+        "Candy",
+        "Smoothies"
+      ],
+      "allergies": [
+        "Spicy foods"
+      ]
+    },
+    {
+      "name": "Puffo the Waister",
+      "weight": 180,
+      "strength": 68,
+      "win_rate": 0.130751762877973,
+      "favorites": [
+        "Candy",
+        "Smoothies",
+        "Slushies"
+      ],
+      "allergies": [
+        "Meats"
+      ]
+    },
+    {
+      "name": "Stuff-A-Roo",
+      "weight": 211,
+      "strength": 59,
+      "win_rate": 0.059160989602007885,
+      "favorites": [
+        "Pizza"
+      ],
+      "allergies": [
+        "Neggs"
+      ]
+    },
+    {
+      "name": "Squire Venable",
+      "weight": 213,
+      "strength": 61,
+      "win_rate": 0.06310505557547508,
+      "favorites": [
+        "Breads"
+      ],
+      "allergies": [
+        "Fruits"
+      ]
+    },
+    {
+      "name": "Captain Crossblades",
+      "weight": 185,
+      "strength": 66,
+      "win_rate": 0.11258515596988168,
+      "favorites": [
+        "Slushies",
+        "Pizza"
+      ],
+      "allergies": [
+        "Salty foods"
+      ]
+    },
+    {
+      "name": "Ol' Stripey",
+      "weight": 189,
+      "strength": 74,
+      "win_rate": 0.21061439158498685,
+      "favorites": [
+        "Meats",
+        "Slushies"
+      ],
+      "allergies": [
+        "Breads"
+      ]
+    },
+    {
+      "name": "Ned the Skipper",
+      "weight": 169,
+      "strength": 79,
+      "win_rate": 0.23795864706585396,
+      "favorites": [
+        "Meats"
+      ],
+      "allergies": [
+        "Dairy"
+      ]
+    },
+    {
+      "name": "Fairfax the Deckhand",
+      "weight": 151,
+      "strength": 71,
+      "win_rate": 0.18800047806860284,
+      "favorites": [
+        "Vegetables",
+        "Fruits"
+      ],
+      "allergies": [
+        "Salty foods"
+      ]
+    },
+    {
+      "name": "Gooblah the Grarrl",
+      "weight": 199,
+      "strength": 93,
+      "win_rate": 0.6473401075911536,
+      "favorites": [
+        "Meats"
+      ],
+      "allergies": [
+        "Slushies"
+      ]
+    },
+    {
+      "name": "Franchisco Corvallio",
+      "weight": 165,
+      "strength": 81,
+      "win_rate": 0.3533349270858236,
+      "favorites": [
+        "Spicy foods",
+        "Meats"
+      ],
+      "allergies": [
+        "Candy"
+      ]
+    },
+    {
+      "name": "Federismo Corvallio",
+      "weight": 166,
+      "strength": 81,
+      "win_rate": 0.358474778866842,
+      "favorites": [
+        "Gross foods",
+        "Pizza"
+      ],
+      "allergies": [
+        "Smoothies"
+      ]
+    },
+    {
+      "name": "Admiral Blackbeard",
+      "weight": 171,
+      "strength": 76,
+      "win_rate": 0.1723437313254452,
+      "favorites": [
+        "Vegetables",
+        "Fruits"
+      ],
+      "allergies": [
+        "Dairy"
+      ]
+    },
+    {
+      "name": "Buck Cutlass",
+      "weight": 189,
+      "strength": 89,
+      "win_rate": 0.4471136608103263,
+      "favorites": [
+        "Candy"
+      ],
+      "allergies": [
+        "Vegetables"
+      ]
+    },
+    {
+      "name": "The Tailhook Kid",
+      "weight": 207,
+      "strength": 81,
+      "win_rate": 0.31651924456131963,
+      "favorites": [
+        "Vegetables"
+      ],
+      "allergies": [
+        "Neggs"
+      ]
+    }
+  ],
+  "courses": {
+    "Hotfish": [
+      "Salty foods",
+      "Meats"
+    ],
+    "Wriggling Grub": [
+      "Gross foods"
+    ],
+    "Joint Of Ham": [
+      "Meats"
+    ],
+    "Rainbow Negg": [
+      "Neggs"
+    ],
+    "Streaky Bacon": [
+      "Meats"
+    ],
+    "Ultimate Burger": [
+      "Meats"
+    ],
+    "Bacon Muffin": [
+      "Meats",
+      "Breads"
+    ],
+    "Hot Cakes": [
+      "Breads"
+    ],
+    "Spicy Wings": [
+      "Spicy foods",
+      "Meats"
+    ],
+    "Apple Onion Rings": [
+      "Fruits",
+      "Gross foods"
+    ],
+    "Sushi": [
+      "Salty foods",
+      "Meats"
+    ],
+    "Negg Stew": [
+      "Neggs"
+    ],
+    "Ice Chocolate Cake": [
+      "Candy"
+    ],
+    "Strochal": [
+      "Candy"
+    ],
+    "Mallowicious Bar": [
+      "Candy"
+    ],
+    "Fungi Pizza": [
+      "Gross foods",
+      "Pizza"
+    ],
+    "Broccoli and Cheese Pizza": [
+      "Vegetables",
+      "Dairy",
+      "Pizza"
+    ],
+    "Bubbling Blueberry Pizza": [
+      "Fruits",
+      "Pizza"
+    ],
+    "Grapity Slush": [
+      "Slushies"
+    ],
+    "Rainborific Slush": [
+      "Slushies"
+    ],
+    "Tangy Tropic Slush": [
+      "Slushies"
+    ],
+    "Blueberry Tomato Blend": [
+      "Fruits",
+      "Dairy",
+      "Smoothies"
+    ],
+    "Lemon Blitz": [
+      "Fruits",
+      "Dairy",
+      "Smoothies"
+    ],
+    "Fresh Seaweed Pie": [
+      "Salty foods",
+      "Gross foods"
+    ],
+    "Flaming Burnumup": [
+      "Spicy foods",
+      "Vegetables"
+    ],
+    "Hot Tyrannian Pepper": [
+      "Spicy foods",
+      "Vegetables"
+    ],
+    "Eye Candy": [
+      "Candy",
+      "Gross foods"
+    ],
+    "Cheese and Tomato Sub": [
+      "Fruits",
+      "Breads",
+      "Dairy"
+    ],
+    "Asparagus Pie": [
+      "Vegetables"
+    ],
+    "Wild Chocomato": [
+      "Dairy",
+      "Smoothies"
+    ],
+    "Cinnamon Swirl": [
+      "Candy",
+      "Breads"
+    ],
+    "Anchovies": [
+      "Salty foods",
+      "Meats"
+    ],
+    "Flaming Fire Faerie Pizza": [
+      "Spicy foods",
+      "Vegetables",
+      "Pizza"
+    ],
+    "Orange Negg": [
+      "Neggs"
+    ],
+    "Fish Negg": [
+      "Neggs"
+    ],
+    "Super Lemon Grape Slush": [
+      "Slushies"
+    ],
+    "Rasmelon": [
+      "Smoothies"
+    ],
+    "Mustard Ice Cream": [
+      "Dairy",
+      "Gross foods"
+    ],
+    "Worm and Leech Pizza": [
+      "Gross foods",
+      "Pizza"
+    ],
+    "Broccoli": [
+      "Vegetables"
+    ]
+  },
+  "arenas": [
+    "Shipwreck",
+    "Lagoon",
+    "Treasure Island",
+    "Hidden Cove",
+    "Harpoon Harry's"
+  ]
+}
