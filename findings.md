@@ -140,6 +140,99 @@ The `(base - strength)` term creates a very steep spread: Gooblah's base upper =
 
 ---
 
+## Community GV/BV Hypotheses (H12–H15)
+
+Motivated by `good_bad_variables.txt`: community theory that `S = strength + n_fav × R_gv - n_allergy × R_bv` where R_gv/R_bv are drawn from weight-dependent ranges (heavier → larger GV range, lighter → larger BV penalty via code leak).
+
+Key structural idea: `gv_upper = weight * gv_scale / 100`, `bv_upper = code_leak_weight_offset(weight, max_w, max_e)`.
+
+| Hypothesis | Description | Best params | Log ratio |
+|---|---|---|---|
+| H12 | Bulk GV/BV: `score = str + n_fav * roll(gv_upper) - n_allergy * roll(bv_upper)` | gv_s=5, max_w=250, max_e=20 | 0.238 |
+| H13 | Per-course GV/BV: individual rolls summed (CLT vs H12's amplified single roll) | gv_s=5, max_w=230, max_e=20 | 0.260 |
+| H14 | GV/BV adjust effective strength → H11-style 3-roll time model | gv_s=2, max_w=230, max_e=8, base=110 | 0.085 |
+| H15 | H11 with sub-linear strength scaling: `(base-strength)^p` with p<1 | base=110, fav%=92, all%=115, p=1.0 | 0.071 |
+
+**Key findings:**
+- H12/H13 (pure additive GV/BV life model): dramatically worse than H11 (0.24 vs 0.07). Additive score framework with weight-scaled ranges doesn't capture the data.
+- H14 (GV/BV → time model): 0.085, worse than H11. Very small gv_scale=2 is optimal, suggesting the weight-GV mapping adds little signal.
+- H15 (sub-linear strength scaling): Grid search finds p=1.0 (= H11 exactly) as the best. Power < 1 does not improve the global fit, even though it was theorized to help Orvinn vs strong opponents.
+
+**Conclusion:** Community GV/BV theory does not improve predictions over the multiplicative time model.
+
+---
+
+## Code Leak Integration (H16–H18)
+
+Incorporating the leaked PHP code (`life -= dice(1, weight_offset)`) directly into H11 variants.
+
+| Hypothesis | Description | Best params | Log ratio |
+|---|---|---|---|
+| H16 | Life-based: strength - 3 × roll(wo × food_effects). Weight = variance, strength = starting life. | max_w=250, max_e=20, fav%=95, all%=140 | 0.140 |
+| H17 | H11 + code leak blend: upper = (base-str + wo×scale) × food_effects | base=105, fav%=92, all%=115, wo_s=5 | 0.071 |
+| **H18** | **Two-phase: code leak per allergy → H11 time with fav mult** | **max_w=221, max_e=10, base=103, fav%=91** | **0.048** |
+
+### H18 — New Best Model (0.048)
+
+**Algorithm:**
+1. Phase 1 (code leak): `life = strength; for each allergy: life -= dice(1, weight_offset)`
+   - `weight_offset = min(floor((221 - weight) / 2), 10)`
+2. Phase 2 (time model): `upper = max(1, 103 - life) × 0.91^n_fav`
+   - `score = -(roll(upper) + roll(upper) + roll(upper))`
+   - Winner = highest score (fastest eater)
+
+**Why it works:**
+- `max_w=221` = Orvinn's exact weight → his weight_offset = 0 → **immune to allergy penalty**
+- Gooblah (w=199): wo = min(11, 10) = 10 → loses up to 10 life per allergy course
+- Allergies are handled structurally by the code leak (weight-dependent), NOT by a single multiplicative parameter
+- Favorites still modify the time rolls multiplicatively (fav%=91)
+- Separates two distinct mechanisms: allergies reduce life (code leak), favorites speed up eating (time model)
+
+**Per-pirate comparison (H18 vs H11 vs historical):**
+
+| Pirate | Historical | H18 | H11 |
+|---|---|---|---|
+| Orvinn | 0.108 | 0.086 (+20pp closer) | 0.066 |
+| Buck Cutlass | 0.447 | 0.440 | 0.460 |
+| Tailhook Kid | 0.317 | 0.319 (near perfect) | 0.295 |
+| Fairfax | 0.188 | 0.189 (near perfect) | 0.193 |
+| Adm. Blackbeard | 0.172 | 0.175 | 0.179 |
+| Gooblah | 0.647 | 0.720 (still overpredicted) | 0.721 |
+| Sir Edmund | 0.270 | 0.239 (underpredicted) | 0.240 |
+
+---
+
+### H19 — Current Best Model (0.045)
+
+H18 + zero-variable exception from community theory: when a pirate has 0 favorites AND 0 allergies in the arena, they receive `roll(8)` bonus life (1–8 points) to prevent pure strength contests.
+
+**Best params:** max_w=221, max_e=10, base=103, fav%=91, zv_bonus=8
+
+**Algorithm:**
+1. `life = strength`
+2. For each allergy course: `life -= dice(1, weight_offset)` (code leak)
+3. If n_fav == 0 AND n_allergy == 0: `life += dice(1, 8)` (zero-variable exception)
+4. `upper = max(1, 103 - life) × 0.91^n_fav`
+5. `score = -(roll(upper) + roll(upper) + roll(upper))`, winner = highest
+
+**Per-pirate comparison (H19 vs H18 vs H11 vs historical):**
+
+| Pirate | Historical | H19 | H18 | H11 |
+|---|---|---|---|---|
+| Orvinn | 0.108 | 0.085 | 0.086 | 0.066 |
+| Peg Leg | 0.142 | 0.143 | 0.138 | 0.140 |
+| Tailhook Kid | 0.317 | 0.322 | 0.319 | 0.295 |
+| Fairfax | 0.188 | 0.188 | 0.189 | 0.193 |
+| Scurvy Dan | 0.475 | 0.475 | 0.477 | 0.483 |
+| Buck Cutlass | 0.447 | 0.442 | 0.440 | 0.460 |
+| Gooblah | 0.647 | 0.719 | 0.720 | 0.721 |
+
+**Remaining gaps:** Orvinn underpredicted by 2.3pp. Gooblah overpredicted by 7.2pp. Sir Edmund underpredicted by 2.6pp.
+
+**Model progression:** Python 0.072 → H11 0.071 → H18 0.048 → **H19 0.045**
+
+---
+
 ## Infrastructure
 
 - **Rust simulation** (`sim/`): 10.6× faster than Python (0.59s vs 6.3s for 2M days)

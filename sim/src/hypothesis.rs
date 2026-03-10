@@ -15,43 +15,6 @@ const DAYS_FINAL: u64 = 20_000_000;
 
 #[derive(Debug, Clone, Copy)]
 enum Hypothesis {
-    /// H7: One bulk roll per category (fav + allergy only), no per-course loop.
-    ///     life = strength + roll(n_fav * fav_param) - roll(n_allergy * wo)
-    ///     Matches the "3 rolls" intuition: two category rolls + no regular penalty.
-    H7 {
-        max_weight: u32,
-        max_effect: u32,
-        fav_param: u32,
-    },
-    /// H8: H7 + one bulk roll for regular (non-fav, non-allergy) courses.
-    ///     life = strength + roll(n_fav * fav_param) - roll(n_allergy * wo) - roll(n_reg * reg_param)
-    ///     All three category types represented by exactly one roll each.
-    H8 {
-        max_weight: u32,
-        max_effect: u32,
-        fav_param: u32,
-        reg_param: u32,
-    },
-    /// H9: Like Python's 3-roll model but each roll has a category-specific scale.
-    ///     All rolls share (base - strength) as the center, matching Python's structure.
-    ///     fav_roll:     upper = base - strength - n_fav * fav_scale
-    ///     allergy_roll: upper = base - strength + n_allergy * allergy_scale
-    ///     normal_roll:  upper = base - strength
-    H9 {
-        base: u32,
-        fav_scale: u32,
-        allergy_scale: u32,
-    },
-    /// H10: 3-roll multiplicative. Each category roll's upper is scaled by a per-course factor.
-    ///     fav_roll:     upper = (base - strength) * (fav_pct/100)^n_fav    (<100 = faster with more favs)
-    ///     allergy_roll: upper = (base - strength) * (allergy_pct/100)^n_allergy (>100 = slower)
-    ///     normal_roll:  upper = (base - strength)
-    ///     Motivated by Orvinn's non-linear win rate spike at many favorites.
-    H10 {
-        base: u32,
-        fav_pct: u32,      // e.g. 85 means 0.85x per favorite
-        allergy_pct: u32,  // e.g. 130 means 1.30x per allergy
-    },
     /// H11: Python-style (all 3 rolls share one upper) but food effects are multiplicative.
     ///     upper = (base - strength) * (fav_pct/100)^n_fav * (allergy_pct/100)^n_allergy
     H11 {
@@ -59,21 +22,38 @@ enum Hypothesis {
         fav_pct: u32,
         allergy_pct: u32,
     },
+    /// H18: Two-phase — code leak per allergy, then H11 time on remaining life.
+    ///     Phase 1: life = strength; for each allergy: life -= roll(wo)
+    ///     Phase 2: upper = max(1, base - life) * fav_pct^n_fav
+    ///     score = -(roll(upper) + roll(upper) + roll(upper))
+    ///     Allergies handled by code leak (weight-dependent), favs by time model.
+    H18 {
+        max_weight: u32,
+        max_effect: u32,
+        base: u32,
+        fav_pct: u32,  // < 100: favs speed up eating time
+    },
+    /// H19: H18 + zero-variable exception.
+    ///     When n_fav == 0 AND n_allergy == 0, pirate gets a random life bonus
+    ///     of roll(zv_bonus) before the time model. Prevents pure strength contests.
+    H19 {
+        max_weight: u32,
+        max_effect: u32,
+        base: u32,
+        fav_pct: u32,
+        zv_bonus: u32,  // bonus roll upper when 0 favs and 0 allergies
+    },
 }
 
 impl std::fmt::Display for Hypothesis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Hypothesis::H7 { max_weight, max_effect, fav_param } =>
-                write!(f, "H7 max_w={max_weight} max_e={max_effect} fav_p={fav_param}"),
-            Hypothesis::H8 { max_weight, max_effect, fav_param, reg_param } =>
-                write!(f, "H8 max_w={max_weight} max_e={max_effect} fav_p={fav_param} reg_p={reg_param}"),
-            Hypothesis::H9 { base, fav_scale, allergy_scale } =>
-                write!(f, "H9 base={base} fav_s={fav_scale} all_s={allergy_scale}"),
-            Hypothesis::H10 { base, fav_pct, allergy_pct } =>
-                write!(f, "H10 base={base} fav%={fav_pct} all%={allergy_pct}"),
             Hypothesis::H11 { base, fav_pct, allergy_pct } =>
                 write!(f, "H11 base={base} fav%={fav_pct} all%={allergy_pct}"),
+            Hypothesis::H18 { max_weight, max_effect, base, fav_pct } =>
+                write!(f, "H18 max_w={max_weight} max_e={max_effect} base={base} fav%={fav_pct}"),
+            Hypothesis::H19 { max_weight, max_effect, base, fav_pct, zv_bonus } =>
+                write!(f, "H19 max_w={max_weight} max_e={max_effect} base={base} fav%={fav_pct} zv={zv_bonus}"),
         }
     }
 }
@@ -90,8 +70,6 @@ fn weight_offset(pirate_weight: u32, max_weight: u32, max_effect: u32) -> u32 {
     ((max_weight - pirate_weight) / 2).min(max_effect)
 }
 
-const MIN_PIRATE_WEIGHT: u32 = 112; // Young Sproggie
-
 // Returns (n_fav, n_allergy, n_regular) for a pirate given the arena courses.
 // Favorites exclude courses that are also allergies (matching Python logic).
 fn course_counts(pirate: &pirates::Pirate, courses: &[usize]) -> (u32, u32, u32) {
@@ -104,47 +82,42 @@ fn course_counts(pirate: &pirates::Pirate, courses: &[usize]) -> (u32, u32, u32)
     (n_fav, n_allergy, n_reg)
 }
 
-fn pirate_life(pirate: &pirates::Pirate, courses: &[usize], hyp: Hypothesis, rng: &mut impl Rng) -> i64 {
+fn pirate_score(pirate: &pirates::Pirate, courses: &[usize], hyp: Hypothesis, rng: &mut impl Rng) -> i64 {
     match hyp {
-        Hypothesis::H7 { max_weight, max_effect, fav_param } => {
-            let wo = weight_offset(pirate.weight, max_weight, max_effect);
-            let (n_fav, n_allergy, _) = course_counts(pirate, courses);
-            pirate.strength as i64
-                + roll(rng, n_fav * fav_param)
-                - roll(rng, n_allergy * wo)
-        }
-        Hypothesis::H8 { max_weight, max_effect, fav_param, reg_param } => {
-            let wo = weight_offset(pirate.weight, max_weight, max_effect);
-            let (n_fav, n_allergy, n_reg) = course_counts(pirate, courses);
-            pirate.strength as i64
-                + roll(rng, n_fav * fav_param)
-                - roll(rng, n_allergy * wo)
-                - roll(rng, n_reg * reg_param)
-        }
-        Hypothesis::H9 { base, fav_scale, allergy_scale } => {
-            let (n_fav, n_allergy, _) = course_counts(pirate, courses);
-            let center = base as i64 - pirate.strength as i64;
-            let fav_u = (center - n_fav as i64 * fav_scale as i64).max(1) as u32;
-            let all_u = (center + n_allergy as i64 * allergy_scale as i64).max(1) as u32;
-            let normal_u = center.max(1) as u32;
-            -roll(rng, fav_u) - roll(rng, all_u) - roll(rng, normal_u)
-        }
-        Hypothesis::H10 { base, fav_pct, allergy_pct } => {
-            // Multiplicative per-category rolls. Each roll's upper scales exponentially with count.
-            let (n_fav, n_allergy, _) = course_counts(pirate, courses);
-            let center = (base as f64 - pirate.strength as f64).max(1.0);
-            let fav_u = (center * (fav_pct as f64 / 100.0).powi(n_fav as i32)).max(1.0) as u32;
-            let all_u = (center * (allergy_pct as f64 / 100.0).powi(n_allergy as i32)).max(1.0) as u32;
-            let normal_u = center as u32;
-            -roll(rng, fav_u) - roll(rng, all_u) - roll(rng, normal_u)
-        }
         Hypothesis::H11 { base, fav_pct, allergy_pct } => {
-            // All 3 rolls share one multiplicative upper bound combining all food effects.
             let (n_fav, n_allergy, _) = course_counts(pirate, courses);
             let center = (base as f64 - pirate.strength as f64).max(1.0);
             let upper = (center
                 * (fav_pct as f64 / 100.0).powi(n_fav as i32)
                 * (allergy_pct as f64 / 100.0).powi(n_allergy as i32))
+                .max(1.0) as u32;
+            -roll(rng, upper) - roll(rng, upper) - roll(rng, upper)
+        }
+        Hypothesis::H18 { max_weight, max_effect, base, fav_pct } => {
+            let (n_fav, n_allergy, _) = course_counts(pirate, courses);
+            let wo = weight_offset(pirate.weight, max_weight, max_effect);
+            let mut life = pirate.strength as i64;
+            for _ in 0..n_allergy {
+                life -= roll(rng, wo);
+            }
+            let upper = ((base as i64 - life).max(1) as f64
+                * (fav_pct as f64 / 100.0).powi(n_fav as i32))
+                .max(1.0) as u32;
+            -roll(rng, upper) - roll(rng, upper) - roll(rng, upper)
+        }
+        Hypothesis::H19 { max_weight, max_effect, base, fav_pct, zv_bonus } => {
+            let (n_fav, n_allergy, _) = course_counts(pirate, courses);
+            let wo = weight_offset(pirate.weight, max_weight, max_effect);
+            let mut life = pirate.strength as i64;
+            for _ in 0..n_allergy {
+                life -= roll(rng, wo);
+            }
+            // Zero-variable exception: if no favs AND no allergies, add random bonus
+            if n_fav == 0 && n_allergy == 0 {
+                life += roll(rng, zv_bonus);
+            }
+            let upper = ((base as i64 - life).max(1) as f64
+                * (fav_pct as f64 / 100.0).powi(n_fav as i32))
                 .max(1.0) as u32;
             -roll(rng, upper) - roll(rng, upper) - roll(rng, upper)
         }
@@ -163,12 +136,11 @@ fn simulate_chunk(data: &GameData, hyp: Hypothesis, days: u64, seed: u64) -> Has
         let course_indices: Vec<usize> = sample(&mut rng, nc, 10).into_vec();
 
         for group in pirate_order.chunks(4) {
-            // Compute scores, handle ties with uniform random choice
             let scores: Vec<(usize, i64)> = group
                 .iter()
                 .map(|&pi| {
-                    let life = pirate_life(&data.pirates[pi], &course_indices, hyp, &mut rng);
-                    (pi, life)
+                    let s = pirate_score(&data.pirates[pi], &course_indices, hyp, &mut rng);
+                    (pi, s)
                 })
                 .collect();
             let max_score = scores.iter().map(|&(_, s)| s).max().unwrap();
@@ -203,7 +175,7 @@ fn run_grid(data: &Arc<GameData>, configs: Vec<Hypothesis>, days: u64, label: &s
         .into_par_iter()
         .enumerate()
         .map(|(i, hyp)| {
-            let n_threads = 4u64; // sub-threads per config
+            let n_threads = 4u64;
             let chunk = days / n_threads;
             let all_wins: Vec<HashMap<String, u64>> = (0..n_threads)
                 .map(|t| simulate_chunk(data, hyp, chunk, i as u64 * 97 + t * 13 + 7))
@@ -257,89 +229,55 @@ fn main() {
     let json = std::fs::read_to_string("../pirates.json").expect("pirates.json not found");
     let data = Arc::new(GameData::load(&json));
 
-    // H9 reference (best additive 3-roll from last run)
-    let h9_configs: Vec<Hypothesis> = [100u32, 105, 110, 113, 120, 130]
+    // H11 reference (best known: base=110, fav%=92, all%=115 → 0.0709)
+    let h11_ref = Hypothesis::H11 { base: 110, fav_pct: 92, allergy_pct: 115 };
+
+    // H18 reference (best known: max_w=221, max_e=10, base=103, fav%=91 → 0.048)
+    let h18_ref = Hypothesis::H18 { max_weight: 221, max_effect: 10, base: 103, fav_pct: 91 };
+
+    // H19: H18 + zero-variable exception.
+    // When n_fav=0 AND n_allergy=0, pirate gets roll(zv_bonus) added to life.
+    // Search around H18's best params with varying zv_bonus.
+    let h19_configs: Vec<Hypothesis> = [220u32, 221, 222, 223]
         .iter()
-        .flat_map(|&base| [1u32, 2, 3, 4, 5, 6, 8, 10].iter().flat_map(move |&fs|
-            [1u32, 2, 3, 4, 5, 6, 8, 10].iter().map(move |&as_|
-                Hypothesis::H9 { base, fav_scale: fs, allergy_scale: as_ }
-            )
-        ))
-        .collect();
-    let best_h9 = run_grid(&data, h9_configs, DAYS_GRID, "H9: additive 3-roll (reference)");
-
-    // H10: multiplicative 3-roll (separate bounds per category)
-    let h10_configs: Vec<Hypothesis> = [100u32, 105, 110, 113, 120]
-        .iter()
-        .flat_map(|&base| [70u32, 75, 80, 85, 88, 90, 92, 95].iter().flat_map(move |&fp|
-            [105u32, 110, 115, 120, 130, 140, 150].iter().map(move |&ap|
-                Hypothesis::H10 { base, fav_pct: fp, allergy_pct: ap }
-            )
-        ))
-        .collect();
-    let best_h10 = run_grid(&data, h10_configs, DAYS_GRID, "H10: multiplicative 3-roll (per-category)");
-
-    // H11: multiplicative single-bound (Python-style but multiplied)
-    let h11_configs: Vec<Hypothesis> = [100u32, 105, 110, 113, 120]
-        .iter()
-        .flat_map(|&base| [70u32, 75, 80, 85, 88, 90, 92, 95].iter().flat_map(move |&fp|
-            [105u32, 110, 115, 120, 130, 140, 150].iter().map(move |&ap|
-                Hypothesis::H11 { base, fav_pct: fp, allergy_pct: ap }
-            )
-        ))
-        .collect();
-    let best_h11 = run_grid(&data, h11_configs, DAYS_GRID, "H11: multiplicative single-bound (Python-style)");
-
-    println!("\n\n=== FINAL RUNS ({DAYS_FINAL} days) ===");
-    run_final(&data, best_h9, DAYS_FINAL);
-    run_final(&data, best_h10, DAYS_FINAL);
-    run_final(&data, best_h11, DAYS_FINAL);
-}
-
-// --- old H7/H8 entry point kept below for reference ---
-fn _old_main() {
-    let json = std::fs::read_to_string("../pirates.json").expect("pirates.json not found");
-    let data = Arc::new(GameData::load(&json));
-
-    // H7: one bulk roll for favs + one for allergies (no regular penalty)
-    let h7_configs: Vec<Hypothesis> = [220u32, 230, 250, 270, 300]
-        .iter()
-        .flat_map(|&mw| [10u32, 15, 20, 25, 30].iter().flat_map(move |&me|
-            [3u32, 5, 8, 10, 15, 20, 30].iter().map(move |&fp|
-                Hypothesis::H7 { max_weight: mw, max_effect: me, fav_param: fp }
-            )
-        ))
-        .collect();
-    let best_h7 = run_grid(&data, h7_configs, DAYS_GRID, "H7: bulk fav roll + bulk allergy roll");
-
-    // H8: H7 + bulk roll for regular courses (one roll per category type = 3 total)
-    let h8_configs: Vec<Hypothesis> = [220u32, 230, 250, 270, 300]
-        .iter()
-        .flat_map(|&mw| [10u32, 15, 20, 25].iter().flat_map(move |&me|
-            [3u32, 5, 8, 10, 15].iter().flat_map(move |&fp|
-                [1u32, 2, 3, 5, 8].iter().map(move |&rp|
-                    Hypothesis::H8 { max_weight: mw, max_effect: me, fav_param: fp, reg_param: rp }
+        .flat_map(|&mw| [8u32, 9, 10, 11, 12].iter().flat_map(move |&me|
+            [101u32, 102, 103, 104, 105].iter().flat_map(move |&base|
+                [89u32, 90, 91, 92, 93].iter().flat_map(move |&fp|
+                    [0u32, 3, 5, 8, 10, 15, 20, 25, 30].iter().map(move |&zv|
+                        Hypothesis::H19 { max_weight: mw, max_effect: me, base, fav_pct: fp, zv_bonus: zv }
+                    )
                 )
             )
         ))
         .collect();
-    let best_h8 = run_grid(&data, h8_configs, DAYS_GRID, "H8: 3 bulk rolls (fav + allergy + regular)");
+    let best_h19 = run_grid(&data, h19_configs, DAYS_GRID,
+        "H19: H18 + zero-variable exception");
 
-    // H9: Python-style 3 rolls with category-specific scales, all anchored on (base - strength)
-    // Python baseline equivalent: base=113, fav_scale=3, allergy_scale=3
-    // (Python applies fav/allergy adjustments equally across all 3 rolls via effective_strength)
-    let h9_configs: Vec<Hypothesis> = [100u32, 105, 110, 113, 120, 130]
-        .iter()
-        .flat_map(|&base| [1u32, 2, 3, 4, 5, 6, 8, 10].iter().flat_map(move |&fs|
-            [1u32, 2, 3, 4, 5, 6, 8, 10].iter().map(move |&as_|
-                Hypothesis::H9 { base, fav_scale: fs, allergy_scale: as_ }
-            )
-        ))
-        .collect();
-    let best_h9 = run_grid(&data, h9_configs, DAYS_GRID, "H9: 3 rolls with category-specific upper bounds");
+    // Verification: run H19 best with different seeds at high day count
+    let h19_best = Hypothesis::H19 { max_weight: 221, max_effect: 10, base: 103, fav_pct: 91, zv_bonus: 8 };
 
     println!("\n\n=== FINAL RUNS ({DAYS_FINAL} days) ===");
-    run_final(&data, best_h7, DAYS_FINAL);
-    run_final(&data, best_h8, DAYS_FINAL);
-    run_final(&data, best_h9, DAYS_FINAL);
+    run_final(&data, h11_ref, DAYS_FINAL);
+    run_final(&data, h18_ref, DAYS_FINAL);
+    run_final(&data, h19_best, DAYS_FINAL);
+
+    // Re-run H19 best with different seeds to verify stability
+    println!("\n\n=== VERIFICATION RUNS (H19 best, 3x {DAYS_FINAL} days, different seeds) ===");
+    for seed_offset in [1000u64, 2000, 3000] {
+        let n_threads = rayon::current_num_threads() as u64;
+        let chunk = DAYS_FINAL / n_threads;
+        let total = chunk * n_threads;
+        let all_wins: Vec<HashMap<String, u64>> = (0..n_threads)
+            .into_par_iter()
+            .map(|i| simulate_chunk(&data, h19_best, chunk, i * 1337 + seed_offset))
+            .collect();
+        let mut total_wins: HashMap<String, u64> = HashMap::new();
+        for w in all_wins {
+            for (name, count) in w {
+                *total_wins.entry(name).or_insert(0) += count;
+            }
+        }
+        let err = log_ratio_avg(&total_wins, total, &data);
+        println!("  seed_offset={seed_offset}: log ratio = {err:.4}");
+    }
 }
