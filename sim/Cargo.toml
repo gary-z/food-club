@@ -11,6 +11,38 @@ path = "src/main.rs"
 name = "hypothesis"
 path = "src/hypothesis.rs"
 
+[[bin]]
+name = "backtest"
+path = "src/backtest.rs"
+
+[[bin]]
+name = "analyze"
+path = "src/analyze.rs"
+
+[[bin]]
+name = "arena_check"
+path = "src/arena_check.rs"
+
+[[bin]]
+name = "winrate_check"
+path = "src/winrate_check.rs"
+
+[[bin]]
+name = "symmetry_check"
+path = "src/symmetry_check.rs"
+
+[[bin]]
+name = "pos_odds"
+path = "src/pos_odds.rs"
+
+[[bin]]
+name = "pos_pirate"
+path = "src/pos_pirate.rs"
+
+[[bin]]
+name = "pos_causal"
+path = "src/pos_causal.rs"
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

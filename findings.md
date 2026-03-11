@@ -233,6 +233,72 @@ H18 + zero-variable exception from community theory: when a pirate has 0 favorit
 
 ---
 
+## Broad Hypothesis Search (H21–H44)
+
+Tested 24 alternative hypotheses across multiple structural categories to see if any fundamentally different model could beat H19. None did.
+
+### Tier 1: Equivalent to H19 (~0.045)
+| Model | Score | Idea |
+|---|---|---|
+| H37 (min_roll floor) | 0.0457 | H19 + min(roll, floor). Best floor=1 (no-op) → just H19 |
+| H44 (allergy→upper) | 0.0458 | Allergy rolls add to upper instead of subtracting from life. Mathematically equivalent to H19 |
+
+### Tier 2: Close but worse (0.05–0.08)
+| Model | Score | Idea |
+|---|---|---|
+| H25 (4 rolls) | 0.053 | H19 with 4 rolls. More rolls = less variance = too deterministic |
+| H33 (partial fav) | 0.048 | Fav multiplier on only some rolls. Best = all 3 (= H19) |
+| H35 (separated phases) | 0.055 | 3 rolls with different uppers (allergy/fav/both) |
+| H38 (bell curve) | 0.060 | 2d(upper/2) per roll. Too little variance |
+| H29 (weight bonus) | 0.059 | H19 + general speed bonus from weight. Weight should only affect allergies |
+| H39 (additive allergy) | 0.073 | Fixed allergy penalty, no weight. Weight dependence matters |
+| H31 (rounds) | 0.076 | Eat in 2 rounds, H19-style per round |
+| H40 (linear weight) | 0.078 | Linear weight→allergy scaling. Code-leak formula beats it |
+
+### Tier 3: Bad (0.10–0.27)
+| Model | Score | Idea |
+|---|---|---|
+| H41 (PHP simple) | 0.105 | strength + roll(base_rand) + per-food modifiers |
+| H34 (appetite) | 0.107 | Appetite drains per course. Nailed Gooblah (0.647!) but failed Orvinn (0.039) |
+| H42 (appetite+leak) | 0.127 | H34 with code-leak allergy |
+| H28 (strength-forward) | 0.197 | score = sum of roll(strength + modifier) per course |
+| H22 (stamina drain) | 0.218 | Per-course stamina drain, weaker = slower |
+| H24 (cumulative sick) | 0.221 | Allergy sickness accumulates across courses |
+| H32 (strength+bonus) | 0.268 | roll(strength) + n_fav * roll(bonus) - n_allergy * roll(penalty) |
+
+### Tier 4: Catastrophic (0.30+)
+| Model | Score | Idea |
+|---|---|---|
+| H21 (per-course time) | 0.339 | 10 courses, time per course, sum total |
+| H36 (base per course) | 0.354 | Upper scales with non-fav course count |
+| H23 (additive fav) | 0.411 | Per-course with additive fav bonus |
+| H26 (bottleneck) | 0.482 | Score = worst single course time |
+| H27 (k-worst) | 0.510 | Sum of k worst course times |
+| H30 (multiplicative) | 0.517 | Product of per-course times |
+
+### Structural conclusions
+1. **3 rolls is optimal** — tested 1, 2, 4, 5, 6, 8, 10. Exactly 3 provides the right balance of signal and variance.
+2. **Aggregate > per-course** — counting n_fav/n_allergy then rolling 3 dice is far better than rolling per course. 10-roll models collapse variance, making strength too dominant.
+3. **Code-leak allergy formula is robust** — weight_offset = floor((221-w)/2) capped at 10 beats all alternatives (additive, linear scaling, no-weight).
+4. **Multiplicative favorites (0.91^n_fav) beats additive** — consistent across all tests.
+5. **Weight should ONLY matter for allergies** — adding general weight bonuses (H29) hurts fit.
+6. **Remaining systematic error is pirate-specific** — Gooblah always overpredicted (~0.72 vs 0.65), Orvinn always underpredicted (~0.085 vs 0.108). May require hidden per-pirate attributes not in our data.
+
+---
+
+## Statistical Checks
+
+### Arena independence
+Chi-squared tests across 5 arenas (Shipwreck, Lagoon, Treasure Island, Hidden Cove, Harpoon Harry's):
+- **Pirate win rates by arena:** 0/20 pirates significant at p<0.05. Arena assignment doesn't affect win rates.
+- **Food appearance by arena:** 1/40 foods at p<0.05 (expected ~2 by chance). Foods are uniformly distributed.
+- **Conclusion:** Arena identity is irrelevant. Safe to ignore arena names.
+
+### Average win rate
+Every pirate appears exactly 4835 times (once per day). Total wins = total races = 24,175. Average win rate = exactly 0.2500 (5 arenas × 4 pirates, 5 winners per day → 5/20 = 25%).
+
+---
+
 ## Infrastructure
 
 - **Rust simulation** (`sim/`): 10.6× faster than Python (0.59s vs 6.3s for 2M days)

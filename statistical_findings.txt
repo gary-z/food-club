@@ -1,0 +1,36 @@
+# Statistical Findings
+
+## Constraints for all future hypotheses
+1. Strength must be the primary determinant of base win rate
+2. Favorites must provide a multiplicative speed boost (~8-10% per fav)
+3. Allergies must reduce win rate via a weight-dependent mechanism
+4. Heavier pirates must be more resistant to allergy effects
+5. Orvinn's apparent allergy immunity is inconclusive — his low strength (52) means
+   he needs many favs to win at all, making it impossible to isolate allergy effects.
+   The weight threshold in H19 (max_w=221) may still be correct but is not proven by data alone.
+6. Arena identity is irrelevant. Chi-squared tests show 0/20 pirates and 1/40 foods
+   with p<0.05 across the 5 arenas (expected ~1 and ~2 by chance). Pirates and foods
+   are assigned uniformly — arena names can be ignored.
+7. Position within an arena (0-3) causally affects win probability. Evidence chain:
+   a. Each pirate appears at each position exactly 25% of the time (±1.5%), with
+      sample sizes of ~1200 per position per pirate. This is the simplest indicator
+      of random position assignment.
+   b. Win rates vary strongly by position: pos0=18.5%, pos1=21.5%, pos2=26.5%, pos3=33.5%.
+   c. The key test: for the SAME pirate with the SAME n_fav and n_allergy (controlling
+      for all intrinsic factors), average odds vary dramatically by position. Examples
+      with 0 fav, 0 allergy (no course-dependent effects at all):
+        - Buck Cutlass: pos0=3.68, pos3=2.37
+        - Lucky McKyriggan: pos0=6.50, pos3=3.27
+        - Squire Venable: pos0=12.76, pos3=9.26
+      ~1200 observations per cell. The only variable is position.
+   d. Occam's razor: random assignment (explains 25% trivially) + position causes
+      win rate changes (explains the above) is far simpler than assuming a weak
+      internal ordering that coincidentally produces exactly 25% per pirate.
+   e. The same-odds test (50.4% among same-odds pirates in same arena) does NOT
+      refute causation — it confirms that the odds-setter correctly accounts for
+      the position effect. A weaker pirate at pos3 gets the same odds as a stronger
+      pirate at pos0 because position compensates for the strength gap.
+   f. Within odds=2, avg strength at pos0=85.9 vs pos3=81.3, confirming that
+      intrinsically weaker pirates at advantaged positions achieve the same odds.
+   g. The effect is large: approximately ±1.5 odds points, comparable to 1-2 favorites.
+      All future hypotheses should include position as an input variable.
