@@ -108,7 +108,13 @@
       "Bash(RUSTUP_TOOLCHAIN=stable-x86_64-pc-windows-gnu cargo *)",
       "Bash(ls -la /c/Users/gary_/Documents/food-club/*.py 2>/dev/null | head -20)",
       "Bash(wc -l *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(ls -la C:/Users/gary_/Documents/food-club/*.py C:/Users/gary_/Documents/food-club/*.txt C:/Users/gary_/Documents/food-club/*.md 2>/dev/null)",
+      "Bash(ls -la /c/Users/gary_/Documents/food-club/*.txt)",
+      "Bash(cd C:/Users/gary_/Documents/food-club && rm -f adhoc.py ai_simple.py fav_proportionality.py fav_winrate_analysis.py independence_test.py parse_historical_geocities.py pirate_position_analysis.py pos_causal.py pos_causal2.py pos_causal3.py rounding_analysis.py simple_win_rate_model.py weight_isolation.py odds_maker_analysis.py food_club_match.py pirates.py findings.md statistical_findings.md pirate_compare_results.txt pirate_position_winrates.txt good_bad_variables.txt && ls -la *.py *.txt *.md 2>/dev/null)",
+      "Bash(grep -r \"fungible\\\\|interchangeable\\\\|same.*course\\\\|course.*same\" /c/Users/gary_/Documents/food-club/*.txt /c/Users/gary_/Documents/food-club/*.md 2>/dev/null || echo \"No matches found\")",
+      "Bash(ls -la /c/Users/gary_/Documents/food-club/*.txt /c/Users/gary_/Documents/food-club/*.py 2>/dev/null | head -20)",
+      "Bash(taskkill //F //IM food_unified.exe 2>/dev/null; echo \"done\")"
     ]
   }
 }

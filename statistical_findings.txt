@@ -35,12 +35,6 @@
    g. The effect is large: approximately ±1.5 odds points, comparable to 1-2 favorites.
       All future hypotheses should include position as an input variable.
 8. Food position (slot 0-9) within an arena does NOT affect win rates.
-   Win rate of a pirate with a fav food is ~0.276 regardless of which slot the
-   fav occupies (tested all 10 slots, N≈19800 each, all within noise).
-   Win rate with an allergy food is ~0.205 regardless of slot (N≈11800 each).
-   Only the COUNT of favs/allergies matters, not their order in the food list.
-   Caution: "first fav position" tables show apparent trends, but these are
-   confounded by the total number of favs (first fav at slot 0 → many favs).
 9. No pirate position × food position interaction. A pirate at pos 0 with a fav
    at food slot 0 wins at the same rate as with a fav at food slot 9 (~0.21).
    Same for pos 3 (~0.36). The position mechanism and food mechanism are independent.
@@ -113,3 +107,103 @@
     c. No pair shows a pattern inconsistent with independence. The model
        assumption that each pirate generates a score independently, then the
        highest score wins, is fully supported by the data.
+16. Courses are fungible. Only the COUNT of favorites/allergies matters, not the
+    identity of specific food courses or which categories they belong to. Tested
+    via six independent analyses:
+    a. Multi-category courses provide no extra boost. Three pirates (Scurvy Dan,
+       Franchisco, Federismo) have courses matching 2+ favorite categories
+       (e.g. Hotfish = Salty foods + Meats for Scurvy Dan). In ~40 controlled
+       comparisons holding nf_binary and na_binary constant while varying the
+       number of double-category courses, only 1/40 reaches p<0.05, consistent
+       with chance. No consistent directional effect. The game counts per-course,
+       not per-category-match.
+    b. Within-category interchangeability confirmed. All 8 Meats-category
+       courses produce statistically identical win rates when they are the sole
+       favorite (chi2=5.5, df=7, p>0.5). "Hotfish" (also Salty foods) works
+       identically to "Joint Of Ham" (pure Meats).
+    c. Binary vs weighted counting gives negligible log-likelihood difference.
+       Counting each course as 0-or-1-favorite (binary, N=14505) vs counting
+       total category matches per course (weighted) yields delta-LL=4.59,
+       or ~0.0003 nats per match. Trivially small.
+    d. The odds-setter assigns identical odds regardless of which category the
+       single favorite comes from (Welch's t-test: all p>0.5 for Blackbeard,
+       Crossblades, and Fairfax). The server does not distinguish categories.
+    e. Apparent category-level effects are confounded by allergy-overlap pool
+       sizes. Admiral Blackbeard (favs=[Vegetables, Fruits], allergy=[Dairy])
+       shows Fruits WR=0.325 vs Vegetables WR=0.123 at nf=1/na=0 (p=0.002).
+       But Fairfax (same favs, allergy=[Salty foods]) shows the OPPOSITE
+       direction: Fruits WR=0.097 vs Vegetables WR=0.188. The reversal rules
+       out an intrinsic category effect. The confound: Blackbeard's Dairy
+       allergy reclassifies 3 of 5 Fruit courses as allergies via the overlap
+       rule, leaving only 2 pure-Fruit-fav courses vs 5 pure-Veg-fav courses.
+       Conditioning on "exactly 1 Fruit fav" creates a highly constrained arena
+       composition that systematically affects opponent profiles.
+    f. Captain Crossblades' Pizza-vs-Slushies gap (p=0.024) is partially
+       explained by a position imbalance (Pizza avg_pos=1.37 vs Slushies
+       avg_pos=1.51).
+    g. Same-category vs different-category favorites are interchangeable.
+       For all 11 multi-category-fav pirates at nf=2/na=0, compared WR when
+       both favs came from the same category vs one from each category. Per-
+       pirate: 0/10 reach p<0.05, direction inconsistent (5 favor diff, 4
+       favor same). Best data: Scurvy Dan (N=73 same, N=233 diff) shows
+       WR=0.589 vs 0.588 (p=0.987). Bonnie (N=195 vs 269): 0.287 vs 0.286
+       (p=0.983). Raw aggregate z=2.19 (p=0.028) favoring diff-category, but
+       this reverses under strength control: normalizing each pirate's WR to
+       their nf=0/na=0 baseline gives same-cat ratio=1.39 vs diff-cat
+       ratio=1.30 (paired t=-1.22, p>0.2). The raw aggregate was confounded
+       by weaker pirates disproportionately appearing in the diff-category
+       bucket. The game does not track which category a favorite comes from.
+    Conclusion: the model's HashSet<usize> representation of favorite_courses
+    (binary per-course, ignoring category multiplicity) is correct.
+17. The game algorithm has not changed across the dataset. Splitting 4835 days
+    into two halves and comparing per-pirate win rates: 0/20 pirates show a
+    significant difference at p<0.05 (expected by chance: 1). Largest shift is
+    Lucky McKyriggan at 2.1pp (p=0.106). Position gradient is also stable:
+    first half 18.7%/21.7%/26.8%/32.8% vs second half 18.3%/21.2%/26.2%/34.3%.
+    All model parameters can be fit to the full dataset without concern for
+    regime changes.
+18. Pirate grouping into arenas is random. Six independent tests confirm:
+    a. Within-arena strength variance is 0.6% lower than random expectation
+       (z=-2.57, p=0.01) — statistically significant but practically negligible.
+    b. Pairwise co-occurrence: chi-squared p=0.61. 11/190 pairs significant at
+       p<0.05 (expected 9.5). Strong+strong ratio=1.004, weak+weak=1.012,
+       strong+weak=0.994 — no balancing pattern.
+    c. Arena strength sum distribution matches simulation perfectly (std ratio
+       1.01). Percentiles align at all levels (P1 through P99).
+    d. Conditional opponent strength: correlation r=+0.59 (positive, opposite of
+       balancing). Strong pirates do NOT face weaker opponents.
+    e. No serial correlation: P(same arena as yesterday)=0.1999 vs expected 0.200.
+       P(same group as yesterday)=0.1572 vs expected 0.1579.
+    f. Max-min strength spread per arena matches simulation (ratio 0.998, p=0.10).
+    g. Triplet co-occurrence: 64/1140 significant at p<0.05 (expected 57).
+       Chi-squared p=0.95.
+    h. No sorting by strength within arenas (F=0.80).
+    i. Per-pirate arena distribution: 3/20 significant (expected 1). Ned the
+       Skipper shows non-uniform arena assignment (p=0.003), possibly a minor RNG
+       bias in arena-name mapping, but does not affect grouping mechanics.
+    The assignment is indistinguishable from a random partition of 20 into 5x4.
+19. Arena outcomes within a day are independent. Pairwise upset correlations
+    (winner odds>=5): 1/10 pairs reaches p<0.05, all |r|<0.03. Winner-odds
+    variance ratio across days = 0.992 (z=-0.39, p=0.70). Two pairs show weak
+    negative correlation on winner strength rank (r~-0.03), explained by the
+    partition constraint (if a strong pirate is in arena A, they cannot be in
+    arena B). No RNG correlation.
+20. Food courses are assigned to arenas independently of pirate identity.
+    Each arena gets 10 of 40 courses; under random assignment each food has a
+    25% appearance rate regardless of which pirates are present. Confirmed by:
+    a. Per-pirate mean fav count matches hypergeometric expectation exactly.
+       2/20 pirates significant at p<0.05 (expected 1), both showing slightly
+       FEWER favs (Ol' Stripey z=-2.89, Puffo z=-2.02). 0/20 for allergies.
+    b. Distribution of nf counts across 8 different K values (3-13 fav courses)
+       matches the hypergeometric PMF at every level.
+    c. Global food frequency: 3/40 foods significant (expected 2). Chi-squared
+       p=0.79. Each food appears in ~25% of arenas.
+    d. Aggregate across all 164 (pirate, fav-food) pairs: observed/expected
+       ratio = 0.997 (z=-1.66, p=0.097). For allergies: 0.999 (z=-0.35, p=0.73).
+    e. Mean total favs per arena (sum of 4 pirates) = 8.17 vs expected 8.20.
+    The game does not boost or suppress a pirate's favs/allergies in their arena.
+    f. Pairwise food co-occurrence: 79/780 pairs significant at p<0.05 (expected
+       39) with mean z^2=1.41, but this is entirely explained by per-food marginal
+       frequency deviations from 25% (range 24.3%-25.5%). After controlling for
+       marginals: 33/780 significant (expected 39), mean z^2=0.89. No residual
+       pairwise structure. Each arena draws 10 foods independently from 40.
