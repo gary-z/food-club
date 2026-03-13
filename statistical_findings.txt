@@ -34,3 +34,82 @@
       intrinsically weaker pirates at advantaged positions achieve the same odds.
    g. The effect is large: approximately ±1.5 odds points, comparable to 1-2 favorites.
       All future hypotheses should include position as an input variable.
+8. Food position (slot 0-9) within an arena does NOT affect win rates.
+   Win rate of a pirate with a fav food is ~0.276 regardless of which slot the
+   fav occupies (tested all 10 slots, N≈19800 each, all within noise).
+   Win rate with an allergy food is ~0.205 regardless of slot (N≈11800 each).
+   Only the COUNT of favs/allergies matters, not their order in the food list.
+   Caution: "first fav position" tables show apparent trends, but these are
+   confounded by the total number of favs (first fav at slot 0 → many favs).
+9. No pirate position × food position interaction. A pirate at pos 0 with a fav
+   at food slot 0 wins at the same rate as with a fav at food slot 9 (~0.21).
+   Same for pos 3 (~0.36). The position mechanism and food mechanism are independent.
+10. All 5 arenas (Harpoon Harry's, Hidden Cove, Lagoon, Shipwreck, Treasure Island)
+    show identical position gradients: P0≈18.5%, P1≈21.5%, P2≈26.5%, P3≈33.5%.
+    No arena-specific position effects.
+11. Phase-based elimination models (3-phase allergy→base→fav, 3-round combat,
+    allergy pre-elimination) all underperform the 3-roll score model (PosMul).
+    Best elimination: H4PhaseB LL=-1.110 vs PosMul LL=-1.084.
+    Elimination makes outcomes too deterministic — strong pirates always outlast
+    weak ones, reducing upset rates below historical levels.
+12. When a food belongs to multiple categories and triggers both a pirate's favorite
+    AND allergy, the game treats it as ALLERGY ONLY (the favorite is negated).
+    Six pirates have overlap foods (e.g. Lucky McKyriggan: "Fungi Pizza" is both
+    Gross foods [fav] and Pizza [allergy]). 36.7% of matches contain at least one
+    overlap. Per-pirate strength-controlled test (N≥100 per cell):
+      Pure fav (1,0,0):     WR ratio = 1.28× baseline (helps)
+      Pure allergy (0,1,0): WR ratio = 0.79× baseline (hurts)
+      Overlap (0,0,1):      WR ratio = 0.77× baseline (hurts, ≈ allergy)
+    The overlap ratio matches pure allergy almost exactly (0.77 vs 0.79) and is
+    nowhere near fav (1.28) or neutral (1.0). Model-independent result.
+13. Weight has NO effect beyond determining allergy damage. Tested using the three
+    str=81 pirates (Franchisco w=165, Federismo w=166, Tailhook Kid w=207) filtered
+    to matches with 0 allergies, where the allergy formula is inert. Results:
+    a. At every fav count (0-4, N=50-500+ per bucket), win rates across the three
+       pirates show 2-8pp spreads with no consistent ordering by weight. The heaviest
+       (w=207) is sometimes highest, sometimes lowest.
+    b. Same-strength pairs elsewhere confirm: Bonnie (w=116, str=76) beats Blackbeard
+       (w=171, str=76) at fav=2 (WR 0.287 vs 0.233); Sproggie (w=112, str=73) beats
+       Peg Leg (w=202, str=73) (WR 0.253 vs 0.198). Lighter pirates win more often.
+    c. Regressing all-pirate WR on strength at fav=1,2 (allergy=0) and correlating
+       weight with the residual gives r=0.4-0.5, but with only 17-19 data points
+       this is not significant and is contradicted by the same-strength pairs above.
+    d. Head-to-head tests (str=81 pairs in same arena, same fav count, both allergy=0)
+       yield N=3-9 decisive outcomes per pair -- too small, results straddle 50%.
+    Conclusion: weight enters the model solely through the allergy damage formula
+    (weight_offset = min(floor((221-w)/2), max_effect)). No speed bonus, no fav
+    scaling, no hidden per-weight attribute.
+14. Strength and weight are NOT rounded to nearest 5, 10, or any other step size.
+    a. The odds-vs-strength curve at (nf=0, na=0) is smooth and continuous with no
+       flat plateaus or jumps at 5/10 boundaries. Every strength point produces a
+       measurably different average odds value.
+    b. Pirates at str=79 and str=81 get clearly different odds (~5.15 vs ~4.47, a
+       0.7-point gap), ruling out round-to-nearest-5 (both would map to 80).
+    c. Franchisco (s=81, w=165) vs Federismo (s=81, w=166) have near-identical odds
+       distributions (e.g. at nf=1,na=1: odds=2 at 32.6% vs 33.6%), consistent with
+       raw 1-point resolution. The small residual differences track opponent composition.
+    d. Same-strength pirates show 0.5-0.8 odds point variation at the same (nf, na)
+       even at (0,0) where weight is irrelevant. These differences are entirely from
+       the opponent composition effect (established by the odds maker analysis showing
+       r=0.49 correlation between odds and avg opponent strength). This opponent noise
+       would mask rounding effects smaller than ~3 strength points, but the smooth
+       overall curve and the str=79 vs str=81 gap rule out all plausible step sizes.
+    e. Weight rounding is also ruled out: the allergy damage formula already uses
+       integer division (floor((221-w)/2)) and caps at max_effect, so many pirates
+       share the same weight_offset regardless of exact weight. No additional
+       quantization is needed or observed.
+15. Pirate scores within an arena are independent. For every pair of pirates
+    (190 pairs, N=60-665 h2h outcomes each), the head-to-head win rate
+    P(A wins | A or B won) was computed across terciles of the other two
+    pirates' combined strength (weak/mid/strong opponents).
+    a. Chi-squared test: 12/190 pairs (6.3%) show p<0.05 variation across
+       terciles, vs 9.5 (5.0%) expected by chance. No evidence of dependence.
+    b. The top-spread pairs show the stronger pirate's h2h rate increasing
+       against strong opponents (e.g. Buck vs Ned: 58.4% -> 80.7%). This is
+       predicted by the independent-score model: when opponents are strong,
+       P(A wins)/P(B wins) amplifies because P(A > strong_opp)/P(B > strong_opp)
+       grows when A is stronger than B. The observed spreads (mean 0.069,
+       median 0.060) are consistent with this statistical artifact.
+    c. No pair shows a pattern inconsistent with independence. The model
+       assumption that each pirate generates a score independently, then the
+       highest score wins, is fully supported by the data.

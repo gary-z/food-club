@@ -7,51 +7,65 @@ use rayon::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-// --- PosMul model (best known) ---
+// Best model params
+const BASE: u32 = 112;
+const FAV_DIV: u32 = 15;   // bulk: upper -= nf * floor(upper / 15)
+const N_ROLLS: u32 = 4;
+const DIVISOR: u32 = 14;
 const MAX_WEIGHT: u32 = 221;
-const MAX_EFFECT: u32 = 10;
-const BASE: u32 = 110;
-const FAV_PCT: f64 = 0.93;
-const ZV_BONUS: u32 = 4;
-const POS_PCT: f64 = 7.0;
+const MAX_EFFECT: u32 = 7;
 const MAX_PAYOUT: u32 = 60;
 const SIM_ITERATIONS: u32 = 50_000;
 
-fn weight_offset(pirate_weight: u32) -> u32 {
-    if pirate_weight >= MAX_WEIGHT {
-        return 0;
-    }
-    ((MAX_WEIGHT - pirate_weight) / 2).min(MAX_EFFECT)
+fn roll(rng: &mut impl Rng, n: u32) -> u32 {
+    if n == 0 { 0 } else { rng.gen_range(1..=n) }
 }
 
-fn roll(rng: &mut impl Rng, n: u32) -> i64 {
-    if n == 0 { 0 } else { rng.gen_range(1..=n) as i64 }
+fn course_counts(pirate: &Pirate, course_indices: &[usize]) -> (u32, u32) {
+    let mut nf = 0u32;
+    let mut na = 0u32;
+    for &c in course_indices {
+        let is_fav = pirate.favorite_courses.contains(&c);
+        let is_allergy = pirate.allergy_courses.contains(&c);
+        match (is_fav, is_allergy) {
+            (true, true)   => { na += 1; }
+            (true, false)  => { nf += 1; }
+            (false, true)  => { na += 1; }
+            (false, false) => {}
+        }
+    }
+    (nf, na)
 }
 
-fn posmul_score(pirate: &Pirate, course_indices: &[usize], pos: u32, rng: &mut impl Rng) -> i64 {
-    let n_allergy = course_indices.iter()
-        .filter(|&&c| pirate.allergy_courses.contains(&c)).count() as u32;
-    let n_fav = course_indices.iter()
-        .filter(|&&c| pirate.favorite_courses.contains(&c) && !pirate.allergy_courses.contains(&c))
-        .count() as u32;
+/// Compute eating time (lower = faster = better).
+fn eating_time(pirate: &Pirate, course_indices: &[usize], rng: &mut impl Rng) -> u32 {
+    let (nf, na) = course_counts(pirate, course_indices);
 
-    let wo = weight_offset(pirate.weight);
-    let mut life = pirate.strength as i64;
-    for _ in 0..n_allergy {
-        life -= roll(rng, wo);
+    // Allergy damage: reduce effective strength
+    let wo = if pirate.weight >= MAX_WEIGHT { 0 } else { ((MAX_WEIGHT - pirate.weight) / 2).min(MAX_EFFECT) };
+    let mut strength = pirate.strength;
+    for _ in 0..na {
+        strength = strength.saturating_sub(roll(rng, wo));
     }
-    if n_fav == 0 && n_allergy == 0 {
-        life += roll(rng, ZV_BONUS);
+
+    // Die size: weaker pirates roll bigger dice (slower)
+    let mut upper = if BASE > strength { BASE - strength } else { 1 };
+
+    // Favorites shrink the die (eat faster)
+    let reduction = upper / FAV_DIV;
+    upper = upper.saturating_sub(nf * reduction).max(1);
+
+    // Roll dice: total eating time
+    let mut time = 0u32;
+    for _ in 0..N_ROLLS {
+        time += roll(rng, upper);
     }
-    let upper_base = ((BASE as i64 - life).max(1) as f64
-        * FAV_PCT.powi(n_fav as i32))
-        .max(1.0);
-    let pos_mul = (100.0 - pos as f64 * POS_PCT) / 100.0;
-    let upper = (upper_base * pos_mul).max(1.0) as u32;
-    -roll(rng, upper) - roll(rng, upper) - roll(rng, upper)
+
+    // Quantize
+    time / DIVISOR
 }
 
-/// Compute win probabilities for 4 pirates in a specific arena with specific foods.
+/// Compute win probabilities via MC simulation. Lowest time wins; ties go to later position.
 fn arena_win_probs(
     pirates: &[&Pirate],
     course_indices: &[usize],
@@ -65,16 +79,19 @@ fn arena_win_probs(
     }
 
     for _ in 0..iterations {
-        let scores: Vec<(&Pirate, i64)> = pirates.iter().enumerate()
-            .map(|(pos, p)| (*p, posmul_score(p, course_indices, pos as u32, &mut rng)))
+        let times: Vec<u32> = pirates.iter()
+            .map(|p| eating_time(p, course_indices, &mut rng))
             .collect();
-        let max_score = scores.iter().map(|(_, s)| *s).max().unwrap();
-        let tied: Vec<&&Pirate> = scores.iter()
-            .filter(|(_, s)| *s == max_score)
-            .map(|(p, _)| p)
-            .collect();
-        let winner = tied[rng.gen_range(0..tied.len())];
-        *wins.get_mut(&winner.name).unwrap() += 1;
+
+        // Lowest time wins. Ties: later position wins.
+        let min_time = *times.iter().min().unwrap();
+        let mut winner_pos = 0;
+        for (pos, &t) in times.iter().enumerate() {
+            if t == min_time {
+                winner_pos = pos; // last one with min time wins tie
+            }
+        }
+        *wins.get_mut(&pirates[winner_pos].name).unwrap() += 1;
     }
 
     wins.into_iter()
@@ -92,13 +109,13 @@ struct HistPirate {
 
 #[derive(Deserialize)]
 struct HistArena {
+    #[allow(dead_code)]
     arena_name: String,
     foods: Vec<String>,
     pirates: Vec<HistPirate>,
     winner: String,
 }
 
-/// A bet: list of (arena_index, pirate_name), combined payout, combined win probability.
 struct Bet {
     pirate_names: Vec<String>,
     win_probability: f64,
@@ -112,16 +129,12 @@ fn make_bets(
     let n = arenas.len();
     let mut possible_bets: Vec<Bet> = Vec::new();
 
-    // Enumerate all subsets of arenas (1 to n), and all pirate picks per arena
     for mask in 1u32..(1 << n) {
         let arena_indices: Vec<usize> = (0..n).filter(|&i| mask & (1 << i) != 0).collect();
-
-        // Build pirate options per selected arena
         let pirate_options: Vec<&[HistPirate]> = arena_indices.iter()
             .map(|&i| arenas[i].pirates.as_slice())
             .collect();
 
-        // Enumerate all combinations using iterative Cartesian product
         let mut combo_indices = vec![0usize; arena_indices.len()];
         loop {
             let mut win_prob = 1.0;
@@ -141,7 +154,6 @@ fn make_bets(
                 payout,
             });
 
-            // Advance combo indices
             let mut carry = true;
             for j in (0..combo_indices.len()).rev() {
                 if carry {
@@ -157,7 +169,6 @@ fn make_bets(
         }
     }
 
-    // Sort by expected value descending, take top 10
     possible_bets.sort_by(|a, b| {
         let ev_a = a.win_probability * a.payout as f64;
         let ev_b = b.win_probability * b.payout as f64;
@@ -186,15 +197,12 @@ fn main() {
         .expect("Failed to parse historical_matches.json");
 
     println!("Loaded {} historical days", historical.len());
-    println!("Model: PosMul (max_w={MAX_WEIGHT}, max_e={MAX_EFFECT}, base={BASE}, fav%={}, zv={ZV_BONUS}, pos%={POS_PCT})",
-        (FAV_PCT * 100.0) as u32);
+    println!("Model: b={BASE} bulk_fd={FAV_DIV} r={N_ROLLS} d={DIVISOR} me={MAX_EFFECT}");
     println!("Sim iterations per arena: {SIM_ITERATIONS}");
     println!("Max payout cap: {MAX_PAYOUT}");
     println!();
 
-    // Process each day in parallel
     let results: Vec<(u32, f64)> = historical.par_iter().enumerate().map(|(day_idx, day_arenas)| {
-        // For each arena, compute H19 win probabilities
         let arena_probs: Vec<HashMap<String, f64>> = day_arenas.iter().enumerate().map(|(arena_idx, arena)| {
             let arena_pirates: Vec<&Pirate> = arena.pirates.iter()
                 .map(|hp| game_data.pirate_by_name(&hp.name)
@@ -218,7 +226,6 @@ fn main() {
     let total_actual: f64 = results.iter().map(|(p, _)| *p as f64).sum();
     let total_expected: f64 = results.iter().map(|(_, e)| *e).sum();
 
-    // Each day costs 10 bets of 1 unit each
     let avg_payout = total_actual / total_days;
     let avg_expected = total_expected / total_days;
     let avg_net_gain = avg_payout - 10.0;
@@ -231,7 +238,6 @@ fn main() {
     println!("Expected payout per day:  {:.2}", avg_expected);
     println!("Expected net gain:        {:.2}", avg_expected - 10.0);
 
-    // Distribution of daily outcomes
     let mut wins = 0;
     let mut losses = 0;
     let mut breakeven = 0;
