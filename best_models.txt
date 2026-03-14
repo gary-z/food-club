@@ -1,0 +1,100 @@
+# Best Models
+
+## Model 1: Current Best (2026-03-12)
+
+Train LL: -1.07825
+Test  LL: -1.06414
+Baseline (uniform random): ln(0.25) = -1.38629
+
+### Pseudocode
+
+```
+$wo = min(floor((221 - $pirate->weight) / 2), 7);
+$strength = $pirate->strength;
+for ($i = 0; $i < $na; $i++) {
+    $strength -= rand(1, $wo);
+}
+$upper = max(1, 112 - $strength);
+$reduction = floor($upper / 15);
+$upper = max(1, $upper - $nf * $reduction);
+$time = 0;
+for ($i = 0; $i < 4; $i++) {
+    $time += rand(1, $upper);
+}
+$time = floor($time / 14);
+// Lowest time wins. Ties: later position wins.
+```
+
+### Parameters
+- BASE = 112
+- FAV_DIV = 15 (bulk reduction: all favs computed from original upper)
+- N_ROLLS = 4
+- DIVISOR = 14
+- MAX_WEIGHT = 221
+- MAX_EFFECT = 7
+
+### Key mechanics
+- Positive score (eating time): lower = faster = better
+- Overlap foods (both fav and allergy for a pirate): count as allergy only
+- Position tiebreak: when quantized scores tie, later position wins
+- Allergy damage: reduce effective strength by rand(1, weight_offset) per allergy
+- Weight offset: min(floor((221 - weight) / 2), 7). Orvinn (w=221) is immune.
+
+### Known gaps
+- Weak pirates (~str<70) systematically underperform model by ~3% relative
+  (model over-predicts their upset chance). 20/190 H2H pairs significant at |z|>2,
+  of which 15 have weak pirate underperforming (vs 5 overperforming).
+- Captain Crossblades (s=66) is worst offender: 8.7% H2H vs Buck (model: 16%, p=0.0004)
+- Orvinn (s=52) consistently overperforms model predictions
+- Grid search over BASE, FAV_DIV, DIVISOR, MAX_EFFECT confirms these are optimal
+- Structural alternatives tested (NonLinear upper, MulFav, MoreDice, UpperCap,
+  StrBoost, Fixed fav) all worse than baseline
+
+### Verified non-effects
+- Arena identity: no effect (finding 6)
+- Food slot position: no effect (finding 8)
+- Weight beyond allergy formula: no effect (finding 13, re-confirmed)
+- Pirate scores: independent across arena (finding 15)
+
+
+## Model 2: PosMul (verified 2026-03-12)
+
+Train LL: -1.07978 (best by train: b=109 f%=93 pp=6)
+Test  LL: -1.06389 (best by test: b=107 f%=93 pp=8)
+
+### Pseudocode
+
+```
+$wo = min(floor((221 - $pirate->weight) / 2), 7);
+$strength = $pirate->strength;
+for ($i = 0; $i < $na; $i++) {
+    $strength -= rand(1, $wo);
+}
+$upper_base = max(1, floor((109 - $strength) * 0.93^$nf));
+$pos_mul = (100 - $pos * 7) / 100;   // pos 0-3
+$upper = max(1, floor($upper_base * $pos_mul));
+$score = rand(1, $upper) + rand(1, $upper) + rand(1, $upper);
+// Lowest score wins. Ties: random among tied.
+```
+
+### Parameters (verified grid search)
+- BASE = 109 (best train) or 107 (best test)
+- FAV_PCT = 93 (multiplicative: upper *= 0.93 per fav, iterative)
+- N_ROLLS = 3
+- POS_PCT = 6-8 (die shrinks 6-8% per position step)
+- MAX_WEIGHT = 221
+- MAX_EFFECT = 7
+
+### Key mechanics
+- Positive score (eating time): lower = faster = better
+- No floor division / no quantization — raw score comparison
+- Position directly shrinks die size (pos3 gets ~21% smaller die = faster)
+- Random tiebreak among equal scores (not position-based)
+- Multiplicative fav effect (each fav multiplies upper by 0.93)
+
+### Notes
+- Nearly identical fit to Model 1 (train gap ~0.002, test essentially equal)
+- Uses position as a direct input rather than emerging from floor+tiebreak
+- The position mechanism is arguably more natural for game code
+- 3 rolls instead of 4; multiplicative favs instead of bulk subtraction
+- Two different structural approaches converge on the same predictive power

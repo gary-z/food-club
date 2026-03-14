@@ -101,10 +101,12 @@ fn arena_win_probs(
 
 // --- Historical data parsing ---
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct HistPirate {
     name: String,
     odds: u32,
+    #[serde(default)]
+    current_odds: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -120,6 +122,7 @@ struct Bet {
     pirate_names: Vec<String>,
     win_probability: f64,
     payout: u32,
+    payout_current: u32,
 }
 
 fn make_bets(
@@ -139,12 +142,14 @@ fn make_bets(
         loop {
             let mut win_prob = 1.0;
             let mut payout = 1u32;
+            let mut payout_current = 1u32;
             let mut pirate_names = Vec::with_capacity(arena_indices.len());
 
             for (j, &ai) in arena_indices.iter().enumerate() {
                 let pirate = &pirate_options[j][combo_indices[j]];
                 win_prob *= arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
                 payout = (payout * pirate.odds).min(MAX_PAYOUT);
+                payout_current = (payout_current * pirate.current_odds.unwrap_or(pirate.odds)).min(MAX_PAYOUT);
                 pirate_names.push(pirate.name.clone());
             }
 
@@ -152,6 +157,7 @@ fn make_bets(
                 pirate_names,
                 win_probability: win_prob,
                 payout,
+                payout_current,
             });
 
             let mut carry = true;
@@ -178,12 +184,44 @@ fn make_bets(
     possible_bets
 }
 
-fn get_payout(bet: &Bet, arenas: &[HistArena]) -> u32 {
+fn bet_won(bet: &Bet, arenas: &[HistArena]) -> bool {
     let winners: std::collections::HashSet<&str> = arenas.iter()
         .map(|a| a.winner.as_str())
         .collect();
-    let all_correct = bet.pirate_names.iter().all(|name| winners.contains(name.as_str()));
-    if all_correct { bet.payout } else { 0 }
+    bet.pirate_names.iter().all(|name| winners.contains(name.as_str()))
+}
+
+// Result for a single day: opening-odds payout, current-odds payout, expected values
+struct DayResult {
+    payout_opening: u32,
+    payout_current: u32,
+    ev_opening: f64,
+    ev_current: f64,
+    has_current_odds: bool,
+}
+
+fn print_stats(label: &str, results: &[&DayResult], use_current: bool) {
+    if results.is_empty() { return; }
+    let n = results.len() as f64;
+    let total_payout: f64 = results.iter().map(|r| {
+        if use_current { r.payout_current as f64 } else { r.payout_opening as f64 }
+    }).sum();
+    let total_ev: f64 = results.iter().map(|r| {
+        if use_current { r.ev_current } else { r.ev_opening }
+    }).sum();
+    let avg_payout = total_payout / n;
+    let avg_ev = total_ev / n;
+    let roi = (avg_payout - 10.0) / 10.0 * 100.0;
+
+    let mut wins = 0u32;
+    let mut losses = 0u32;
+    for r in results {
+        let p = if use_current { r.payout_current } else { r.payout_opening };
+        if p > 10 { wins += 1; } else if p < 10 { losses += 1; }
+    }
+
+    println!("  {:<35} {:>5} days | Avg payout {:>6.2} | ROI {:>+6.1}% | EV {:>6.2} | Win% {:>5.1}",
+        label, results.len(), avg_payout, roi, avg_ev, wins as f64 / n * 100.0);
 }
 
 fn main() {
@@ -199,10 +237,9 @@ fn main() {
     println!("Loaded {} historical days", historical.len());
     println!("Model: b={BASE} bulk_fd={FAV_DIV} r={N_ROLLS} d={DIVISOR} me={MAX_EFFECT}");
     println!("Sim iterations per arena: {SIM_ITERATIONS}");
-    println!("Max payout cap: {MAX_PAYOUT}");
     println!();
 
-    let results: Vec<(u32, f64)> = historical.par_iter().enumerate().map(|(day_idx, day_arenas)| {
+    let results: Vec<DayResult> = historical.par_iter().enumerate().map(|(day_idx, day_arenas)| {
         let arena_probs: Vec<HashMap<String, f64>> = day_arenas.iter().enumerate().map(|(arena_idx, arena)| {
             let arena_pirates: Vec<&Pirate> = arena.pirates.iter()
                 .map(|hp| game_data.pirate_by_name(&hp.name)
@@ -215,40 +252,62 @@ fn main() {
                 day_idx as u64 * 17 + arena_idx as u64 * 31 + 42)
         }).collect();
 
+        // Make bets using opening odds (standard)
         let bets = make_bets(&arena_probs, day_arenas);
-        let total_payout: u32 = bets.iter().map(|b| get_payout(b, day_arenas)).sum();
-        let expected_payout: f64 = bets.iter().map(|b| b.win_probability * b.payout as f64).sum();
 
-        (total_payout, expected_payout)
+        let has_current = day_arenas[0].pirates[0].current_odds.is_some();
+
+        let mut payout_opening = 0u32;
+        let mut payout_current = 0u32;
+        let mut ev_opening = 0.0f64;
+        let mut ev_current = 0.0f64;
+        for b in &bets {
+            let won = bet_won(b, day_arenas);
+            if won {
+                payout_opening += b.payout;
+                payout_current += b.payout_current;
+            }
+            ev_opening += b.win_probability * b.payout as f64;
+            ev_current += b.win_probability * b.payout_current as f64;
+        }
+
+        DayResult { payout_opening, payout_current, ev_opening, ev_current, has_current_odds: has_current }
     }).collect();
 
-    let total_days = results.len() as f64;
-    let total_actual: f64 = results.iter().map(|(p, _)| *p as f64).sum();
-    let total_expected: f64 = results.iter().map(|(_, e)| *e).sum();
+    let all_results: Vec<&DayResult> = results.iter().collect();
+    let has_current: Vec<&DayResult> = results.iter().filter(|r| r.has_current_odds).collect();
+    let no_current: Vec<&DayResult> = results.iter().filter(|r| !r.has_current_odds).collect();
 
-    let avg_payout = total_actual / total_days;
-    let avg_expected = total_expected / total_days;
-    let avg_net_gain = avg_payout - 10.0;
+    println!("=== BACKTEST RESULTS ===\n");
 
-    println!("=== BACKTEST RESULTS ({} days) ===", results.len());
-    println!("Average payout per day:   {:.2}", avg_payout);
-    println!("Average cost per day:     10.00");
-    println!("Average net gain per day: {:.2}", avg_net_gain);
-    println!("Average ROI:              {:.1}%", avg_net_gain / 10.0 * 100.0);
-    println!("Expected payout per day:  {:.2}", avg_expected);
-    println!("Expected net gain:        {:.2}", avg_expected - 10.0);
+    println!("Opening odds:");
+    print_stats("All data", &all_results, false);
+    print_stats("Days with current odds", &has_current, false);
+    print_stats("Days without current odds", &no_current, false);
 
-    let mut wins = 0;
-    let mut losses = 0;
-    let mut breakeven = 0;
-    for (payout, _) in &results {
-        match (*payout as i32 - 10).signum() {
-            1 => wins += 1,
-            -1 => losses += 1,
-            _ => breakeven += 1,
-        }
+    println!("\nCurrent odds (where available):");
+    print_stats("Days with current odds", &has_current, true);
+
+    println!("\nDirect comparison (same {} days):", has_current.len());
+    print_stats("Opening odds", &has_current, false);
+    print_stats("Current odds", &has_current, true);
+
+    // Detailed: how much do current odds differ from opening?
+    let mut higher = 0u32;
+    let mut lower = 0u32;
+    let mut same = 0u32;
+    let mut total_open_ev = 0.0f64;
+    let mut total_curr_ev = 0.0f64;
+    for r in &has_current {
+        total_open_ev += r.ev_opening;
+        total_curr_ev += r.ev_current;
+        if r.payout_current > r.payout_opening { higher += 1; }
+        else if r.payout_current < r.payout_opening { lower += 1; }
+        else { same += 1; }
     }
-    println!("\nWinning days:   {} ({:.1}%)", wins, wins as f64 / total_days * 100.0);
-    println!("Losing days:    {} ({:.1}%)", losses, losses as f64 / total_days * 100.0);
-    println!("Breakeven days: {} ({:.1}%)", breakeven, breakeven as f64 / total_days * 100.0);
+    println!("\n  Days where current payout > opening: {}", higher);
+    println!("  Days where current payout < opening: {}", lower);
+    println!("  Days where current payout = opening: {}", same);
+    println!("  Avg EV opening: {:.3}", total_open_ev / has_current.len() as f64);
+    println!("  Avg EV current: {:.3}", total_curr_ev / has_current.len() as f64);
 }

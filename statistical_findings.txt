@@ -1,209 +1,122 @@
 # Statistical Findings
+# Each finding states the result, then how to reproduce it.
 
-## Constraints for all future hypotheses
-1. Strength must be the primary determinant of base win rate
-2. Favorites must provide a multiplicative speed boost (~8-10% per fav)
-3. Allergies must reduce win rate via a weight-dependent mechanism
-4. Heavier pirates must be more resistant to allergy effects
-5. Orvinn's apparent allergy immunity is inconclusive — his low strength (52) means
-   he needs many favs to win at all, making it impossible to isolate allergy effects.
-   The weight threshold in H19 (max_w=221) may still be correct but is not proven by data alone.
-6. Arena identity is irrelevant. Chi-squared tests show 0/20 pirates and 1/40 foods
-   with p<0.05 across the 5 arenas (expected ~1 and ~2 by chance). Pirates and foods
-   are assigned uniformly — arena names can be ignored.
-7. Position within an arena (0-3) causally affects win probability. Evidence chain:
-   a. Each pirate appears at each position exactly 25% of the time (±1.5%), with
-      sample sizes of ~1200 per position per pirate. This is the simplest indicator
-      of random position assignment.
-   b. Win rates vary strongly by position: pos0=18.5%, pos1=21.5%, pos2=26.5%, pos3=33.5%.
-   c. The key test: for the SAME pirate with the SAME n_fav and n_allergy (controlling
-      for all intrinsic factors), average odds vary dramatically by position. Examples
-      with 0 fav, 0 allergy (no course-dependent effects at all):
-        - Buck Cutlass: pos0=3.68, pos3=2.37
-        - Lucky McKyriggan: pos0=6.50, pos3=3.27
-        - Squire Venable: pos0=12.76, pos3=9.26
-      ~1200 observations per cell. The only variable is position.
-   d. Occam's razor: random assignment (explains 25% trivially) + position causes
-      win rate changes (explains the above) is far simpler than assuming a weak
-      internal ordering that coincidentally produces exactly 25% per pirate.
-   e. The same-odds test (50.4% among same-odds pirates in same arena) does NOT
-      refute causation — it confirms that the odds-setter correctly accounts for
-      the position effect. A weaker pirate at pos3 gets the same odds as a stronger
-      pirate at pos0 because position compensates for the strength gap.
-   f. Within odds=2, avg strength at pos0=85.9 vs pos3=81.3, confirming that
-      intrinsically weaker pirates at advantaged positions achieve the same odds.
-   g. The effect is large: approximately ±1.5 odds points, comparable to 1-2 favorites.
-      All future hypotheses should include position as an input variable.
-8. Food position (slot 0-9) within an arena does NOT affect win rates.
-9. No pirate position × food position interaction. A pirate at pos 0 with a fav
-   at food slot 0 wins at the same rate as with a fav at food slot 9 (~0.21).
-   Same for pos 3 (~0.36). The position mechanism and food mechanism are independent.
-10. All 5 arenas (Harpoon Harry's, Hidden Cove, Lagoon, Shipwreck, Treasure Island)
-    show identical position gradients: P0≈18.5%, P1≈21.5%, P2≈26.5%, P3≈33.5%.
-    No arena-specific position effects.
-11. Phase-based elimination models (3-phase allergy→base→fav, 3-round combat,
-    allergy pre-elimination) all underperform the 3-roll score model (PosMul).
-    Best elimination: H4PhaseB LL=-1.110 vs PosMul LL=-1.084.
-    Elimination makes outcomes too deterministic — strong pirates always outlast
-    weak ones, reducing upset rates below historical levels.
-12. When a food belongs to multiple categories and triggers both a pirate's favorite
-    AND allergy, the game treats it as ALLERGY ONLY (the favorite is negated).
-    Six pirates have overlap foods (e.g. Lucky McKyriggan: "Fungi Pizza" is both
-    Gross foods [fav] and Pizza [allergy]). 36.7% of matches contain at least one
-    overlap. Per-pirate strength-controlled test (N≥100 per cell):
-      Pure fav (1,0,0):     WR ratio = 1.28× baseline (helps)
-      Pure allergy (0,1,0): WR ratio = 0.79× baseline (hurts)
-      Overlap (0,0,1):      WR ratio = 0.77× baseline (hurts, ≈ allergy)
-    The overlap ratio matches pure allergy almost exactly (0.77 vs 0.79) and is
-    nowhere near fav (1.28) or neutral (1.0). Model-independent result.
-13. Weight has NO effect beyond determining allergy damage. Tested using the three
-    str=81 pirates (Franchisco w=165, Federismo w=166, Tailhook Kid w=207) filtered
-    to matches with 0 allergies, where the allergy formula is inert. Results:
-    a. At every fav count (0-4, N=50-500+ per bucket), win rates across the three
-       pirates show 2-8pp spreads with no consistent ordering by weight. The heaviest
-       (w=207) is sometimes highest, sometimes lowest.
-    b. Same-strength pairs elsewhere confirm: Bonnie (w=116, str=76) beats Blackbeard
-       (w=171, str=76) at fav=2 (WR 0.287 vs 0.233); Sproggie (w=112, str=73) beats
-       Peg Leg (w=202, str=73) (WR 0.253 vs 0.198). Lighter pirates win more often.
-    c. Regressing all-pirate WR on strength at fav=1,2 (allergy=0) and correlating
-       weight with the residual gives r=0.4-0.5, but with only 17-19 data points
-       this is not significant and is contradicted by the same-strength pairs above.
-    d. Head-to-head tests (str=81 pairs in same arena, same fav count, both allergy=0)
-       yield N=3-9 decisive outcomes per pair -- too small, results straddle 50%.
-    Conclusion: weight enters the model solely through the allergy damage formula
-    (weight_offset = min(floor((221-w)/2), max_effect)). No speed bonus, no fav
-    scaling, no hidden per-weight attribute.
-14. Strength and weight are NOT rounded to nearest 5, 10, or any other step size.
-    a. The odds-vs-strength curve at (nf=0, na=0) is smooth and continuous with no
-       flat plateaus or jumps at 5/10 boundaries. Every strength point produces a
-       measurably different average odds value.
-    b. Pirates at str=79 and str=81 get clearly different odds (~5.15 vs ~4.47, a
-       0.7-point gap), ruling out round-to-nearest-5 (both would map to 80).
-    c. Franchisco (s=81, w=165) vs Federismo (s=81, w=166) have near-identical odds
-       distributions (e.g. at nf=1,na=1: odds=2 at 32.6% vs 33.6%), consistent with
-       raw 1-point resolution. The small residual differences track opponent composition.
-    d. Same-strength pirates show 0.5-0.8 odds point variation at the same (nf, na)
-       even at (0,0) where weight is irrelevant. These differences are entirely from
-       the opponent composition effect (established by the odds maker analysis showing
-       r=0.49 correlation between odds and avg opponent strength). This opponent noise
-       would mask rounding effects smaller than ~3 strength points, but the smooth
-       overall curve and the str=79 vs str=81 gap rule out all plausible step sizes.
-    e. Weight rounding is also ruled out: the allergy damage formula already uses
-       integer division (floor((221-w)/2)) and caps at max_effect, so many pirates
-       share the same weight_offset regardless of exact weight. No additional
-       quantization is needed or observed.
-15. Pirate scores within an arena are independent. For every pair of pirates
-    (190 pairs, N=60-665 h2h outcomes each), the head-to-head win rate
-    P(A wins | A or B won) was computed across terciles of the other two
-    pirates' combined strength (weak/mid/strong opponents).
-    a. Chi-squared test: 12/190 pairs (6.3%) show p<0.05 variation across
-       terciles, vs 9.5 (5.0%) expected by chance. No evidence of dependence.
-    b. The top-spread pairs show the stronger pirate's h2h rate increasing
-       against strong opponents (e.g. Buck vs Ned: 58.4% -> 80.7%). This is
-       predicted by the independent-score model: when opponents are strong,
-       P(A wins)/P(B wins) amplifies because P(A > strong_opp)/P(B > strong_opp)
-       grows when A is stronger than B. The observed spreads (mean 0.069,
-       median 0.060) are consistent with this statistical artifact.
-    c. No pair shows a pattern inconsistent with independence. The model
-       assumption that each pirate generates a score independently, then the
-       highest score wins, is fully supported by the data.
-16. Courses are fungible. Only the COUNT of favorites/allergies matters, not the
-    identity of specific food courses or which categories they belong to. Tested
-    via six independent analyses:
-    a. Multi-category courses provide no extra boost. Three pirates (Scurvy Dan,
-       Franchisco, Federismo) have courses matching 2+ favorite categories
-       (e.g. Hotfish = Salty foods + Meats for Scurvy Dan). In ~40 controlled
-       comparisons holding nf_binary and na_binary constant while varying the
-       number of double-category courses, only 1/40 reaches p<0.05, consistent
-       with chance. No consistent directional effect. The game counts per-course,
-       not per-category-match.
-    b. Within-category interchangeability confirmed. All 8 Meats-category
-       courses produce statistically identical win rates when they are the sole
-       favorite (chi2=5.5, df=7, p>0.5). "Hotfish" (also Salty foods) works
-       identically to "Joint Of Ham" (pure Meats).
-    c. Binary vs weighted counting gives negligible log-likelihood difference.
-       Counting each course as 0-or-1-favorite (binary, N=14505) vs counting
-       total category matches per course (weighted) yields delta-LL=4.59,
-       or ~0.0003 nats per match. Trivially small.
-    d. The odds-setter assigns identical odds regardless of which category the
-       single favorite comes from (Welch's t-test: all p>0.5 for Blackbeard,
-       Crossblades, and Fairfax). The server does not distinguish categories.
-    e. Apparent category-level effects are confounded by allergy-overlap pool
-       sizes. Admiral Blackbeard (favs=[Vegetables, Fruits], allergy=[Dairy])
-       shows Fruits WR=0.325 vs Vegetables WR=0.123 at nf=1/na=0 (p=0.002).
-       But Fairfax (same favs, allergy=[Salty foods]) shows the OPPOSITE
-       direction: Fruits WR=0.097 vs Vegetables WR=0.188. The reversal rules
-       out an intrinsic category effect. The confound: Blackbeard's Dairy
-       allergy reclassifies 3 of 5 Fruit courses as allergies via the overlap
-       rule, leaving only 2 pure-Fruit-fav courses vs 5 pure-Veg-fav courses.
-       Conditioning on "exactly 1 Fruit fav" creates a highly constrained arena
-       composition that systematically affects opponent profiles.
-    f. Captain Crossblades' Pizza-vs-Slushies gap (p=0.024) is partially
-       explained by a position imbalance (Pizza avg_pos=1.37 vs Slushies
-       avg_pos=1.51).
-    g. Same-category vs different-category favorites are interchangeable.
-       For all 11 multi-category-fav pirates at nf=2/na=0, compared WR when
-       both favs came from the same category vs one from each category. Per-
-       pirate: 0/10 reach p<0.05, direction inconsistent (5 favor diff, 4
-       favor same). Best data: Scurvy Dan (N=73 same, N=233 diff) shows
-       WR=0.589 vs 0.588 (p=0.987). Bonnie (N=195 vs 269): 0.287 vs 0.286
-       (p=0.983). Raw aggregate z=2.19 (p=0.028) favoring diff-category, but
-       this reverses under strength control: normalizing each pirate's WR to
-       their nf=0/na=0 baseline gives same-cat ratio=1.39 vs diff-cat
-       ratio=1.30 (paired t=-1.22, p>0.2). The raw aggregate was confounded
-       by weaker pirates disproportionately appearing in the diff-category
-       bucket. The game does not track which category a favorite comes from.
-    Conclusion: the model's HashSet<usize> representation of favorite_courses
-    (binary per-course, ignoring category multiplicity) is correct.
-17. The game algorithm has not changed across the dataset. Splitting 4835 days
-    into two halves and comparing per-pirate win rates: 0/20 pirates show a
-    significant difference at p<0.05 (expected by chance: 1). Largest shift is
-    Lucky McKyriggan at 2.1pp (p=0.106). Position gradient is also stable:
-    first half 18.7%/21.7%/26.8%/32.8% vs second half 18.3%/21.2%/26.2%/34.3%.
-    All model parameters can be fit to the full dataset without concern for
-    regime changes.
-18. Pirate grouping into arenas is random. Six independent tests confirm:
-    a. Within-arena strength variance is 0.6% lower than random expectation
-       (z=-2.57, p=0.01) — statistically significant but practically negligible.
-    b. Pairwise co-occurrence: chi-squared p=0.61. 11/190 pairs significant at
-       p<0.05 (expected 9.5). Strong+strong ratio=1.004, weak+weak=1.012,
-       strong+weak=0.994 — no balancing pattern.
-    c. Arena strength sum distribution matches simulation perfectly (std ratio
-       1.01). Percentiles align at all levels (P1 through P99).
-    d. Conditional opponent strength: correlation r=+0.59 (positive, opposite of
-       balancing). Strong pirates do NOT face weaker opponents.
-    e. No serial correlation: P(same arena as yesterday)=0.1999 vs expected 0.200.
-       P(same group as yesterday)=0.1572 vs expected 0.1579.
-    f. Max-min strength spread per arena matches simulation (ratio 0.998, p=0.10).
-    g. Triplet co-occurrence: 64/1140 significant at p<0.05 (expected 57).
-       Chi-squared p=0.95.
-    h. No sorting by strength within arenas (F=0.80).
-    i. Per-pirate arena distribution: 3/20 significant (expected 1). Ned the
-       Skipper shows non-uniform arena assignment (p=0.003), possibly a minor RNG
-       bias in arena-name mapping, but does not affect grouping mechanics.
-    The assignment is indistinguishable from a random partition of 20 into 5x4.
-19. Arena outcomes within a day are independent. Pairwise upset correlations
-    (winner odds>=5): 1/10 pairs reaches p<0.05, all |r|<0.03. Winner-odds
-    variance ratio across days = 0.992 (z=-0.39, p=0.70). Two pairs show weak
-    negative correlation on winner strength rank (r~-0.03), explained by the
-    partition constraint (if a strong pirate is in arena A, they cannot be in
-    arena B). No RNG correlation.
-20. Food courses are assigned to arenas independently of pirate identity.
-    Each arena gets 10 of 40 courses; under random assignment each food has a
-    25% appearance rate regardless of which pirates are present. Confirmed by:
-    a. Per-pirate mean fav count matches hypergeometric expectation exactly.
-       2/20 pirates significant at p<0.05 (expected 1), both showing slightly
-       FEWER favs (Ol' Stripey z=-2.89, Puffo z=-2.02). 0/20 for allergies.
-    b. Distribution of nf counts across 8 different K values (3-13 fav courses)
-       matches the hypergeometric PMF at every level.
-    c. Global food frequency: 3/40 foods significant (expected 2). Chi-squared
-       p=0.79. Each food appears in ~25% of arenas.
-    d. Aggregate across all 164 (pirate, fav-food) pairs: observed/expected
-       ratio = 0.997 (z=-1.66, p=0.097). For allergies: 0.999 (z=-0.35, p=0.73).
-    e. Mean total favs per arena (sum of 4 pirates) = 8.17 vs expected 8.20.
-    The game does not boost or suppress a pirate's favs/allergies in their arena.
-    f. Pairwise food co-occurrence: 79/780 pairs significant at p<0.05 (expected
-       39) with mean z^2=1.41, but this is entirely explained by per-food marginal
-       frequency deviations from 25% (range 24.3%-25.5%). After controlling for
-       marginals: 33/780 significant (expected 39), mean z^2=0.89. No residual
-       pairwise structure. Each arena draws 10 foods independently from 40.
+## Game inputs
+
+1. **Strength is the primary determinant of base win rate.**
+   Reproduce: regress WR on strength at nf=0, na=0.
+
+2. **Favorites provide ~8-10% multiplicative speed boost per fav.**
+   Reproduce: compare WR ratios at nf=0,1,2,3 for same pirate.
+
+3. **Allergies reduce win rate via weight-dependent damage.**
+   Formula: `weight_offset = min(floor((221-w)/2), 7)`, rolled per allergy.
+   Reproduce: compare allergy WR penalty for heavy vs light pirates.
+
+4. **Orvinn's allergy immunity is inconclusive.** His wo=0 (weight=221) means
+   allergies deal 0 damage, but his low str=52 makes isolating allergy effects
+   impossible — too few wins at any condition.
+
+5. **Weight has no effect beyond allergy damage.** Same-strength pirates
+   (str=81: Franchisco w=165, Federismo w=166, Tailhook w=207) at na=0 show
+   no consistent WR ordering by weight across fav counts 0-4.
+   Reproduce: filter str=81 pirates to na=0, compare WR by nf bucket.
+
+6. **Strength and weight are not rounded.** The odds-vs-strength curve is smooth;
+   str=79 vs str=81 gives clearly different odds (~5.15 vs ~4.47).
+   Reproduce: plot avg odds vs strength at nf=0, na=0.
+
+7. **Overlap foods (both fav AND allergy) count as allergy only** (elseif pattern).
+   Overlap WR ratio = 0.77x baseline, matching pure allergy (0.79x), not fav (1.28x).
+   Reproduce: compare WR for 6 overlap pirates at (pure_fav, pure_allergy, overlap) conditions.
+
+8. **Courses are fungible.** Only the count of favs/allergies matters, not which
+   specific courses or categories. Multi-category courses give no extra boost;
+   same-category vs different-category fav pairs are interchangeable.
+   Reproduce: compare WR by category source at fixed nf/na; chi-sq within-category.
+
+## Arena structure
+
+9. **Arena identity is irrelevant.** 0/20 pirates and 1/40 foods show p<0.05
+   variation across arenas (expected by chance). Identical position gradients
+   across all 5 arenas.
+   Reproduce: chi-squared per pirate/food across arena names.
+
+10. **Food slot position (0-9) does not affect win rates.** No pirate position x
+    food position interaction either.
+    Reproduce: compare WR by food slot at each pirate position.
+
+11. **Pirate grouping into arenas is random.** Indistinguishable from random
+    partition of 20 into 5x4. Pairwise co-occurrence chi-sq p=0.61; strength
+    sum distribution matches simulation; no serial correlation.
+    Reproduce: pairwise/triplet co-occurrence tests, strength sum simulation.
+
+12. **Arena outcomes within a day are independent.** Pairwise upset correlations
+    all |r|<0.03. Winner-odds variance ratio = 0.992 (z=-0.39).
+    Reproduce: correlate upset indicators across arena pairs within days.
+
+13. **Foods assigned independently of pirate identity.** Per-pirate fav counts
+    match hypergeometric expectation. Pairwise food co-occurrence explained
+    entirely by marginal frequency deviations (24.3-25.5%).
+    Reproduce: compare observed fav counts to hypergeometric PMF per pirate.
+
+14. **Pirate scores within an arena are independent.** H2H win rates stable
+    across terciles of opponent strength (12/190 pairs p<0.05, expected 9.5).
+    Reproduce: compute P(A wins | A or B won) across opponent-strength terciles.
+
+## Algorithm structure
+
+15. **Elimination models underperform score models.** Best elimination LL=-1.110
+    vs best score model LL=-1.078. Elimination is too deterministic.
+    Reproduce: run food_unified.rs with elimination vs score model configs.
+
+16. **Algorithm unchanged across dataset.** Splitting 4835 days in half: 0/20
+    pirates differ at p<0.05. Position gradient stable across halves.
+    Reproduce: split data by date, compare per-pirate WR and position gradient.
+
+## Position effect
+
+17. **Position causally affects win probability.** Win rates: P0=18.5%, P1=21.5%,
+    P2=26.5%, P3=33.5%. Pirates are randomly assigned (25% each position).
+    Same pirate, same nf/na shows dramatically different odds by position
+    (e.g. Buck Cutlass: pos0=3.68, pos3=2.37 at nf=0,na=0).
+    Reproduce: compute avg odds by position for each pirate at fixed nf/na.
+
+18. **Both die-size modification AND tiebreaking contribute.** Position gradient
+    varies from 10.7pp (lopsided arenas) to 18.1pp (balanced arenas). Gooblah
+    vs weak opponents: 11.5pp gradient (p=0.0001), where tiebreak-only model
+    predicts <5pp. Regression interaction pos x balance: t=8.7, p<0.0001.
+    Reproduce: run arena_balance_test.md analysis (Tests A-D).
+
+19. **Position effect is multiplicative on die size**, not additive. Gradient in
+    pp scales with strength: 9pp (str<=70) vs 19pp (str 81-90). Multiplicative
+    predicts larger pp shift for strong pirates (small die); additive predicts
+    the opposite.
+    Reproduce: compute P3-P0 gradient stratified by own strength bin.
+
+20. **Position effect is independent of fav count.** Gradient ~13-17pp at every
+    fav count 0-5. Adjacent pairs where both have 0 favs still show ~54-61%
+    h2h advantage for later position. Rules out $n_fav leaking across the loop.
+    Reproduce: run fav_leak_test2.py — matched-fav h2h and own-fav gradient.
+
+21. **Position effect is independent of allergy count.** Matched-allergy h2h
+    stable at 53-57% across na=0-3. Gradient stable at ~14-15pp across total
+    arena allergy levels. Rules out $na leaking across the loop.
+    Reproduce: run allergy_leak_test.py.
+
+22. **Position effect does not depend on earlier pirate's strength.** Matched-
+    strength h2h stable at ~55-59% across all strength bins.
+    Reproduce: run weight_strength_leak_test.py, matched strength h2h section.
+
+23. **Cannot distinguish flat constant (+7) from weight_offset accumulation.**
+    17/20 pirates have weight_offset=7 (hit the cap). The 3 exceptions (Orvinn
+    wo=0, Squire wo=4, Stuff-A-Roo wo=5) are the weakest pirates, confounding
+    weight with strength.
+    Reproduce: run weight_strength_leak_test.py, weight_offset section.
+
+## Best models
+
+- **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,
+  later-position tiebreak. Train LL=-1.078, Test LL=-1.064.
+- **Model 2** (PosMul): BASE=109, mul fav (0.93^nf), 3 rolls, pos_mul=(100-pos*7)/100,
+  random tiebreak. Train LL=-1.080, Test LL=-1.064.
