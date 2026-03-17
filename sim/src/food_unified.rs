@@ -548,13 +548,20 @@ fn main() {
     let hj = std::fs::read_to_string("../historical_matches.json").unwrap();
     let hist = load_historical_matches(&data, &hj);
 
-    let mut train: Vec<Vec<HistMatch>> = Vec::new();
-    let mut test: Vec<Vec<HistMatch>> = Vec::new();
-    for (i, day) in hist.into_iter().enumerate() {
-        if hash_day(i) % 7 == 0 { test.push(day); }
-        else { train.push(day); }
+    // Split: legacy = train, modern = test
+    let mut legacy: Vec<Vec<HistMatch>> = Vec::new();
+    let mut modern: Vec<Vec<HistMatch>> = Vec::new();
+    for (_i, day) in hist.into_iter().enumerate() {
+        if day.first().map_or(false, |m| m.legacy) {
+            legacy.push(day);
+        } else {
+            modern.push(day);
+        }
     }
-    println!("Train: {} days, Test: {} days", train.len(), test.len());
+    let leg_arenas: usize = legacy.iter().map(|d| d.len()).sum();
+    let mod_arenas: usize = modern.iter().map(|d| d.len()).sum();
+    println!("Legacy (train): {} days, {} arenas", legacy.len(), leg_arenas);
+    println!("Modern (test):  {} days, {} arenas", modern.len(), mod_arenas);
 
     let baseline = Params {
         base: 112, n_rolls: 4, fav_mode: 0, fav_param: 15,
@@ -562,9 +569,301 @@ fn main() {
         quant_round: 0, max_effect: 7, allergy_mode: 0, allergy_param: 0,
         wo_min: 0, max_fav: 0, str_mode: 0, str_decay: 0, overlap_mode: 0, allergy_order: 0, fav_str_bonus: 0, legacy_wo_min: 0,
     };
-    let bl_te = eval_pmf(&data, &test, &baseline, &[]);
-    println!("Baseline: test={:.5}", bl_te.ll);
+    let bl_leg = eval_pmf(&data, &legacy, &baseline, &[]);
+    let bl_mod = eval_pmf(&data, &modern, &baseline, &[]);
+    println!("Baseline M1: legacy={:.5} modern={:.5}", bl_leg.ll, bl_mod.ll);
 
+    // NN best on modern: -1.06277
+    // We need to beat -1.06493 (M1 on modern)
+
+    // === H2: Fav reduction based on strength instead of die ===
+    // upper -= nf * floor(strength / K) instead of upper -= nf * floor(upper / K)
+    // fav_mode=11 does this
+    {
+        println!("\n=== H2: Fav from strength (fav_mode=11) ===");
+        #[derive(Clone)]
+        struct R { base: u32, nr: u32, fk: u32, dv: u32, me: u32, te: f64 }
+        let mut cfgs = Vec::new();
+        for base in (106..=120).step_by(2) {
+            for &nr in &[3u32, 4, 5, 6] {
+                for fk in (10..=50).step_by(2) {
+                    for dv in (0..=24).step_by(2) {
+                        for &me in &[6u32, 7, 8] {
+                            cfgs.push((base, nr, fk, dv, me));
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs.len());
+        let mut res: Vec<R> = cfgs.par_iter().map(|&(b,nr,fk,dv,me)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:11, fav_param:fk,
+                pos_mode:0, pos_step:0, tiebreak:0, divisor:dv, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:0, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R{base:b,nr,fk,dv,me,te:e.ll}
+        }).collect();
+        res.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res.iter().take(5) {
+            println!("  b={} nr={} fk={} dv={} me={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fk, r.dv, r.me, r.te, r.te - bl_mod.ll);
+        }
+    }
+
+    // === H4: Larger fav divisor (re-tune baseline with bigger FAV_DIV) ===
+    {
+        println!("\n=== H4: Re-tune baseline with wider FAV_DIV ===");
+        #[derive(Clone)]
+        struct R { base: u32, nr: u32, fp: u32, dv: u32, me: u32, te: f64 }
+        let mut cfgs = Vec::new();
+        for base in (106..=120).step_by(2) {
+            for &nr in &[3u32, 4, 5, 6] {
+                for fp in (10..=30).step_by(1) {
+                    for dv in (0..=24).step_by(2) {
+                        for &me in &[6u32, 7, 8] {
+                            cfgs.push((base, nr, fp, dv, me));
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs.len());
+        let mut res: Vec<R> = cfgs.par_iter().map(|&(b,nr,fp,dv,me)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:0, fav_param:fp,
+                pos_mode:0, pos_step:0, tiebreak:0, divisor:dv, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:0, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R{base:b,nr,fp,dv,me,te:e.ll}
+        }).collect();
+        res.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res.iter().take(5) {
+            println!("  b={} nr={} fp={} dv={} me={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fp, r.dv, r.me, r.te, r.te - bl_mod.ll);
+        }
+    }
+
+    // === H1: Iterative fav (fav_mode=2) re-tuned on modern ===
+    {
+        println!("\n=== H1: Iterative fav (fav_mode=2) ===");
+        #[derive(Clone)]
+        struct R { base: u32, nr: u32, fp: u32, dv: u32, me: u32, te: f64 }
+        let mut cfgs = Vec::new();
+        for base in (106..=130).step_by(2) {
+            for &nr in &[3u32, 4, 5, 6, 7] {
+                for fp in (10..=30).step_by(1) {
+                    for dv in (0..=30).step_by(2) {
+                        for &me in &[6u32, 7, 8] {
+                            cfgs.push((base, nr, fp, dv, me));
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs.len());
+        let mut res: Vec<R> = cfgs.par_iter().map(|&(b,nr,fp,dv,me)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:2, fav_param:fp,
+                pos_mode:0, pos_step:0, tiebreak:0, divisor:dv, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:0, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R{base:b,nr,fp,dv,me,te:e.ll}
+        }).collect();
+        res.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res.iter().take(5) {
+            println!("  b={} nr={} fp={} dv={} me={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fp, r.dv, r.me, r.te, r.te - bl_mod.ll);
+        }
+    }
+
+    // === H5: Iterative fav + allergy-after ===
+    {
+        println!("\n=== H5: Iterative fav + allergy-after (ao=1) ===");
+        #[derive(Clone)]
+        struct R { base: u32, nr: u32, fp: u32, dv: u32, me: u32, te: f64 }
+        let mut cfgs = Vec::new();
+        for base in (106..=130).step_by(2) {
+            for &nr in &[3u32, 4, 5, 6, 7] {
+                for fp in (10..=30).step_by(1) {
+                    for dv in (0..=30).step_by(2) {
+                        for &me in &[5u32, 6, 7, 8] {
+                            cfgs.push((base, nr, fp, dv, me));
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs.len());
+        let mut res: Vec<R> = cfgs.par_iter().map(|&(b,nr,fp,dv,me)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:2, fav_param:fp,
+                pos_mode:0, pos_step:0, tiebreak:0, divisor:dv, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:1, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R{base:b,nr,fp,dv,me,te:e.ll}
+        }).collect();
+        res.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res.iter().take(5) {
+            println!("  b={} nr={} fp={} dv={} me={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fp, r.dv, r.me, r.te, r.te - bl_mod.ll);
+        }
+    }
+
+    // === H3: Fav-adds-to-strength (fav_str_bonus) ===
+    {
+        println!("\n=== H3: Favs add to strength ===");
+        #[derive(Clone)]
+        struct R { base: u32, nr: u32, dv: u32, me: u32, fsb: u32, ao: u8, te: f64 }
+        let mut cfgs = Vec::new();
+        for base in (108..=130).step_by(2) {
+            for &nr in &[3u32, 4, 5, 6] {
+                for dv in (0..=24).step_by(2) {
+                    for &me in &[6u32, 7, 8] {
+                        for &fsb in &[1u32, 2, 3, 4, 5, 6, 8, 10] {
+                            for &ao in &[0u8, 1] {
+                                cfgs.push((base, nr, dv, me, fsb, ao));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs.len());
+        let mut res: Vec<R> = cfgs.par_iter().map(|&(b,nr,dv,me,fsb,ao)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:0, fav_param:15,
+                pos_mode:0, pos_step:0, tiebreak:0, divisor:dv, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:ao, fav_str_bonus:fsb, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R{base:b,nr,dv,me,fsb,ao,te:e.ll}
+        }).collect();
+        res.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res.iter().take(5) {
+            println!("  b={} nr={} dv={} me={} fsb={} ao={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.dv, r.me, r.fsb, r.ao, r.te, r.te - bl_mod.ll);
+        }
+    }
+
+    // === PosMul variants ===
+    // Model 2: multiplicative fav, position shrinks die, no quantization, random tiebreak
+    {
+        println!("\n=== PosMul baseline (fav_mode=1, pos_mode=1, tiebreak=2, divisor=0) ===");
+        let pm_baseline = Params {
+            base: 109, n_rolls: 3, fav_mode: 1, fav_param: 93,
+            pos_mode: 1, pos_step: 7, tiebreak: 2, divisor: 0,
+            quant_round: 0, max_effect: 7, allergy_mode: 0, allergy_param: 0,
+            wo_min: 0, max_fav: 0, str_mode: 0, str_decay: 0, overlap_mode: 0,
+            allergy_order: 0, fav_str_bonus: 0, legacy_wo_min: 0,
+        };
+        let pm_mod = eval_pmf(&data, &modern, &pm_baseline, &[]);
+        println!("  PosMul baseline modern={:.5}", pm_mod.ll);
+
+        // Re-tune PosMul on modern
+        println!("\n=== PosMul re-tune ===");
+        #[derive(Clone)]
+        struct R { base: u32, nr: u32, fp: u32, pp: u32, me: u32, te: f64 }
+        let mut cfgs = Vec::new();
+        for base in (100..=120).step_by(1) {
+            for &nr in &[2u32, 3, 4, 5] {
+                for fp in (85..=98).step_by(1) {
+                    for pp in (0..=12).step_by(1) {
+                        for &me in &[6u32, 7, 8] {
+                            cfgs.push((base, nr, fp, pp, me));
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs.len());
+        let mut res: Vec<R> = cfgs.par_iter().map(|&(b,nr,fp,pp,me)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:1, fav_param:fp,
+                pos_mode:1, pos_step:pp, tiebreak:2, divisor:0, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:0, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R{base:b,nr,fp,pp,me,te:e.ll}
+        }).collect();
+        res.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res.iter().take(5) {
+            println!("  b={} nr={} fp={} pp={} me={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fp, r.pp, r.me, r.te, r.te - pm_mod.ll);
+        }
+
+        // PosMul + allergy-after
+        println!("\n=== PosMul + allergy-after ===");
+        #[derive(Clone)]
+        struct R2 { base: u32, nr: u32, fp: u32, pp: u32, me: u32, te: f64 }
+        let mut cfgs2 = Vec::new();
+        for base in (100..=125).step_by(1) {
+            for &nr in &[2u32, 3, 4, 5] {
+                for fp in (85..=98).step_by(1) {
+                    for pp in (0..=12).step_by(1) {
+                        for &me in &[5u32, 6, 7, 8] {
+                            cfgs2.push((base, nr, fp, pp, me));
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs2.len());
+        let mut res2: Vec<R2> = cfgs2.par_iter().map(|&(b,nr,fp,pp,me)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:1, fav_param:fp,
+                pos_mode:1, pos_step:pp, tiebreak:2, divisor:0, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:1, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R2{base:b,nr,fp,pp,me,te:e.ll}
+        }).collect();
+        res2.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res2.iter().take(5) {
+            println!("  b={} nr={} fp={} pp={} me={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fp, r.pp, r.me, r.te, r.te - pm_mod.ll);
+        }
+
+        // PosMul with quantization + later-wins tiebreak (hybrid with Model 1)
+        println!("\n=== PosMul + quantization + later-wins ===");
+        #[derive(Clone)]
+        struct R3 { base: u32, nr: u32, fp: u32, pp: u32, dv: u32, me: u32, ao: u8, te: f64 }
+        let mut cfgs3 = Vec::new();
+        for base in (104..=120).step_by(2) {
+            for &nr in &[3u32, 4, 5] {
+                for fp in (88..=96).step_by(1) {
+                    for pp in (0..=10).step_by(2) {
+                        for dv in (10..=22).step_by(2) {
+                            for &me in &[6u32, 7, 8] {
+                                for &ao in &[0u8, 1] {
+                                    cfgs3.push((base, nr, fp, pp, dv, me, ao));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        println!("  {} configs", cfgs3.len());
+        let mut res3: Vec<R3> = cfgs3.par_iter().map(|&(b,nr,fp,pp,dv,me,ao)| {
+            let p = Params { base:b, n_rolls:nr, fav_mode:1, fav_param:fp,
+                pos_mode:1, pos_step:pp, tiebreak:0, divisor:dv, quant_round:0,
+                max_effect:me, allergy_mode:0, allergy_param:0, wo_min:0, max_fav:0,
+                str_mode:0, str_decay:0, overlap_mode:0, allergy_order:ao, fav_str_bonus:0, legacy_wo_min:0 };
+            let e = eval_pmf(&data, &modern, &p, &[]);
+            R3{base:b,nr,fp,pp,dv,me,ao,te:e.ll}
+        }).collect();
+        res3.sort_by(|a,b| b.te.partial_cmp(&a.te).unwrap());
+        for r in res3.iter().take(5) {
+            println!("  b={} nr={} fp={} pp={} dv={} me={} ao={} modern={:.5} (delta={:+.5})",
+                     r.base, r.nr, r.fp, r.pp, r.dv, r.me, r.ao, r.te, r.te - pm_mod.ll);
+        }
+    }
+
+    println!("\nBaseline M1 modern: {:.5}", bl_mod.ll);
+    println!("Model 4 modern:     -1.06314");
+    println!("NN best modern:     -1.06277");
+
+}
+
+/*  OLD SEARCHES (disabled — kept for reference)
     // === Search 11: Fav/allergy overlap handling modes ===
     // Test all 4 overlap modes with baseline and nearby params
     {
@@ -1063,8 +1362,10 @@ fn main() {
         }
     }
 }
+*/
 
-// === Regression helpers ===
+// === Regression helpers (used by old searches) ===
+#[allow(dead_code)]
 
 fn simple_regression(x: &[f64], y: &[f64]) -> (f64, f64, f64, f64) {
     let n = x.len() as f64;

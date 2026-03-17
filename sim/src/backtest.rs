@@ -1,31 +1,18 @@
 mod pirates;
 
 use pirates::{GameData, Pirate};
-use rand::prelude::*;
-use rand::rngs::SmallRng;
 use rayon::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-// Best model params (b=111 with life_adj)
-const BASE: u32 = 111;
-const FAV_DIV: u32 = 15;
-const N_ROLLS: u32 = 4;
-const DIVISOR: u32 = 14;
+// Model 4: Iterative Fav + Allergy-After (best hand-rolled, modern LL=-1.06314)
+const BASE: u32 = 120;
+const FAV_DIV: u32 = 16;
+const N_ROLLS: u32 = 6;
+const DIVISOR: u32 = 22;
 const MAX_WEIGHT: u32 = 221;
-const MAX_EFFECT: u32 = 7;
+const MAX_EFFECT: u32 = 6;
 const MAX_PAYOUT: u32 = 60;
-const SIM_ITERATIONS: u32 = 50_000;
-
-// Per-pirate strength adjustments (indexed by pirate order in pirates.json)
-// [Scurvy, Young+1, Orvinn+6, Lucky-1, Edmund+1, PegLeg, Bonnie, Puffo-1,
-//  Stuff+1, Squire+1, Crossblades-2, Stripey, Ned, Fairfax+1, Gooblah-1,
-//  Franchisco, Federismo, Blackbeard-1, Buck, Tailhook+1]
-const STR_ADJ: [i32; 20] = [0, 1, 6, -1, 1, 0, 0, -1, 1, 1, -2, 0, 0, 1, -1, 0, 0, -1, 0, 1];
-
-fn roll(rng: &mut impl Rng, n: u32) -> u32 {
-    if n == 0 { 0 } else { rng.gen_range(1..=n) }
-}
 
 fn course_counts(pirate: &Pirate, course_indices: &[usize]) -> (u32, u32) {
     let mut nf = 0u32;
@@ -43,67 +30,134 @@ fn course_counts(pirate: &Pirate, course_indices: &[usize]) -> (u32, u32) {
     (nf, na)
 }
 
-/// Compute eating time (lower = faster = better).
-fn eating_time(pirate: &Pirate, course_indices: &[usize], life_adj: i32, rng: &mut impl Rng) -> u32 {
-    let (nf, na) = course_counts(pirate, course_indices);
+// ==================== PMF-based exact probability engine ====================
 
-    // Life starts at strength, allergy damage reduces it
-    let wo = if pirate.weight >= MAX_WEIGHT { 0 } else { ((MAX_WEIGHT - pirate.weight) / 2).min(MAX_EFFECT) };
-    let mut life = (pirate.strength as i32 + life_adj).max(0) as u32;
-    for _ in 0..na {
-        life = life.saturating_sub(roll(rng, wo));
+/// PMF of sum of `n` dice, each uniform on {1, ..., d}.
+fn dice_sum_pmf(n: u32, d: u32) -> Vec<f64> {
+    if d == 0 || n == 0 { return vec![1.0]; }
+    let max = (n * d) as usize;
+    let inv_d = 1.0 / d as f64;
+    let mut pmf = vec![0.0; max + 1];
+    for k in 1..=(d as usize) { pmf[k] = inv_d; }
+    for _ in 1..n {
+        let mut new = vec![0.0; max + 1];
+        let mut s = 0.0;
+        for k in 0..=max {
+            if k >= 1 { s += pmf[k - 1]; }
+            if k > d as usize { s -= pmf[k - d as usize - 1]; }
+            new[k] = s * inv_d;
+        }
+        pmf = new;
     }
-
-    // Die size: lower life = bigger die = slower
-    let mut upper = if BASE > life { BASE - life } else { 1 };
-
-    // Favorites shrink the die (eat faster)
-    let reduction = upper / FAV_DIV;
-    upper = upper.saturating_sub(nf * reduction).max(1);
-
-    // Roll dice: total eating time
-    let mut time = 0u32;
-    for _ in 0..N_ROLLS {
-        time += roll(rng, upper);
-    }
-
-    // Quantize
-    time / DIVISOR
+    pmf
 }
 
-/// Compute win probabilities via MC simulation. Lowest time wins; ties go to later position.
+/// Compute a pirate's quantized score PMF for Model 4.
+/// Iterative fav, allergy-after, floor quantization, later-wins tiebreak.
+fn pirate_score_pmf(pirate: &Pirate, course_indices: &[usize], roll_table: &[Vec<f64>]) -> Vec<f64> {
+    let (nf, na) = course_counts(pirate, course_indices);
+
+    let raw_wo = MAX_WEIGHT.saturating_sub(pirate.weight.min(MAX_WEIGHT)) / 2;
+    let wo = if MAX_EFFECT > 0 { raw_wo.min(MAX_EFFECT) } else { raw_wo };
+
+    // Allergy damage PMF (sum of na dice each uniform 1..wo)
+    let dmg_pmf: Vec<f64> = if na > 0 && wo > 0 {
+        dice_sum_pmf(na, wo)
+    } else {
+        vec![1.0]
+    };
+
+    let max_raw_score = (N_ROLLS as usize) * (roll_table.len() - 1);
+    let mut raw_pmf = vec![0.0; max_raw_score + 1];
+
+    for (dmg_val, &dp) in dmg_pmf.iter().enumerate() {
+        if dp < 1e-15 { continue; }
+
+        // Die size from strength
+        let mut upper = if BASE > pirate.strength { BASE - pirate.strength } else { 1 }.max(1);
+
+        // Iterative fav reduction
+        for _ in 0..nf {
+            let red = upper / FAV_DIV;
+            upper = upper.saturating_sub(red).max(1);
+        }
+
+        // Allergy damage AFTER fav: increases the die
+        upper += dmg_val as u32;
+        upper = upper.max(1);
+
+        if (upper as usize) < roll_table.len() {
+            let rpmf = &roll_table[upper as usize];
+            for (k, &rp) in rpmf.iter().enumerate() {
+                if rp > 0.0 && k < raw_pmf.len() {
+                    raw_pmf[k] += dp * rp;
+                }
+            }
+        }
+    }
+
+    // Floor quantization by DIVISOR
+    let max_q = max_raw_score / DIVISOR as usize;
+    let mut qpmf = vec![0.0; max_q + 1];
+    for (k, &pr) in raw_pmf.iter().enumerate() {
+        if pr < 1e-15 { continue; }
+        let qk = k / DIVISOR as usize;
+        if qk <= max_q { qpmf[qk] += pr; }
+    }
+    qpmf
+}
+
+/// Compute win probabilities from 4 independent score PMFs. Later position wins ties.
+fn win_probs_from_pmfs(pmfs: [&[f64]; 4]) -> [f64; 4] {
+    let max_t = pmfs.iter().map(|p| p.len()).max().unwrap_or(1);
+    // Survival functions: P(score > t)
+    let surv: [Vec<f64>; 4] = std::array::from_fn(|i| {
+        let mut s = vec![0.0; max_t + 1];
+        let mut acc = 0.0;
+        for t in (0..pmfs[i].len()).rev() {
+            s[t] = acc;
+            acc += pmfs[i][t];
+        }
+        s
+    });
+    let f = |i: usize, t: usize| -> f64 {
+        if t < pmfs[i].len() { pmfs[i][t] } else { 0.0 }
+    };
+    let s = |i: usize, t: usize| -> f64 {
+        if t < surv[i].len() { surv[i][t] } else { 0.0 }
+    };
+    // g(i,t) = P(score_i >= t) = P(score_i > t-1)
+    let g = |i: usize, t: usize| -> f64 {
+        if t == 0 { 1.0 } else { s(i, t - 1) }
+    };
+
+    let mut probs = [0.0f64; 4];
+    for t in 0..max_t {
+        // Later position wins ties (tiebreak=0)
+        probs[3] += f(3,t) * g(0,t) * g(1,t) * g(2,t);
+        probs[2] += f(2,t) * g(0,t) * g(1,t) * s(3,t);
+        probs[1] += f(1,t) * g(0,t) * s(2,t) * s(3,t);
+        probs[0] += f(0,t) * s(1,t) * s(2,t) * s(3,t);
+    }
+    probs
+}
+
+/// Compute exact win probabilities for an arena via PMF convolution.
 fn arena_win_probs(
     pirates: &[&Pirate],
     course_indices: &[usize],
-    life_adjs: &[i32],
-    iterations: u32,
-    seed: u64,
+    roll_table: &[Vec<f64>],
 ) -> HashMap<String, f64> {
-    let mut rng = SmallRng::seed_from_u64(seed);
-    let mut wins: HashMap<String, u32> = HashMap::new();
-    for p in pirates {
-        wins.insert(p.name.clone(), 0);
+    let pmfs: Vec<Vec<f64>> = pirates.iter()
+        .map(|p| pirate_score_pmf(p, course_indices, roll_table))
+        .collect();
+    let pmf_refs: [&[f64]; 4] = [&pmfs[0], &pmfs[1], &pmfs[2], &pmfs[3]];
+    let probs = win_probs_from_pmfs(pmf_refs);
+    let mut result = HashMap::new();
+    for (i, p) in pirates.iter().enumerate() {
+        result.insert(p.name.clone(), probs[i]);
     }
-
-    for _ in 0..iterations {
-        let times: Vec<u32> = pirates.iter().enumerate()
-            .map(|(i, p)| eating_time(p, course_indices, life_adjs[i], &mut rng))
-            .collect();
-
-        // Lowest time wins. Ties: later position wins.
-        let min_time = *times.iter().min().unwrap();
-        let mut winner_pos = 0;
-        for (pos, &t) in times.iter().enumerate() {
-            if t == min_time {
-                winner_pos = pos;
-            }
-        }
-        *wins.get_mut(&pirates[winner_pos].name).unwrap() += 1;
-    }
-
-    wins.into_iter()
-        .map(|(name, count)| (name, count as f64 / iterations as f64))
-        .collect()
+    result
 }
 
 // --- Historical data parsing ---
@@ -123,6 +177,8 @@ struct HistArena {
     foods: Vec<String>,
     pirates: Vec<HistPirate>,
     winner: String,
+    #[serde(default)]
+    legacy: bool,
 }
 
 struct Bet {
@@ -254,7 +310,7 @@ fn make_bets_no_2s(
         let mut combo_indices = vec![0usize; arena_indices.len()];
         loop {
             // Skip if any pirate has odds=2
-            let has_2 = arena_indices.iter().enumerate().any(|(j, &ai)| {
+            let has_2 = arena_indices.iter().enumerate().any(|(j, &_ai)| {
                 pirate_options[j][combo_indices[j]].odds == 2
             });
 
@@ -885,22 +941,28 @@ fn main() {
 
     let hist_json = std::fs::read_to_string("../historical_matches.json")
         .expect("historical_matches.json not found");
-    let historical: Vec<Vec<HistArena>> = serde_json::from_str(&hist_json)
+    let all_days: Vec<Vec<HistArena>> = serde_json::from_str(&hist_json)
         .expect("Failed to parse historical_matches.json");
 
-    println!("Loaded {} historical days", historical.len());
-    println!("Model: b={BASE} bulk_fd={FAV_DIV} r={N_ROLLS} d={DIVISOR} me={MAX_EFFECT}");
-    println!("Sim iterations per arena: {SIM_ITERATIONS}");
-    println!();
-
-    // Build pirate index lookup for life_adj
-    let pirate_index: HashMap<&str, usize> = game_data.pirates.iter().enumerate()
-        .map(|(i, p)| (p.name.as_str(), i))
+    // Filter to modern data only (post-legacy PHP upgrade)
+    let historical: Vec<Vec<HistArena>> = all_days.into_iter()
+        .filter(|day| day.first().map_or(false, |a| !a.legacy))
         .collect();
 
+    let total_arenas: usize = historical.iter().map(|d| d.len()).sum();
+    println!("Modern data: {} days, {} arenas", historical.len(), total_arenas);
+    println!("Model 4: b={BASE} iter_fd={FAV_DIV} r={N_ROLLS} d={DIVISOR} me={MAX_EFFECT} allergy_after");
+    println!("Using exact PMF engine (no MC noise)");
+    println!();
+
+    // Precompute roll table: roll_table[d] = PMF of sum of N_ROLLS dice each 1..d
+    // Max possible upper bound: BASE + MAX_EFFECT * max_na (generous upper bound ~150)
+    let max_upper = 200;
+    let roll_table: Vec<Vec<f64>> = (0..=max_upper).map(|d| dice_sum_pmf(N_ROLLS, d as u32)).collect();
+
     // Compute arena probs for all days in parallel
-    let day_probs: Vec<Vec<HashMap<String, f64>>> = historical.par_iter().enumerate().map(|(day_idx, day_arenas)| {
-        day_arenas.iter().enumerate().map(|(arena_idx, arena)| {
+    let day_probs: Vec<Vec<HashMap<String, f64>>> = historical.par_iter().map(|day_arenas| {
+        day_arenas.iter().map(|arena| {
             let arena_pirates: Vec<&Pirate> = arena.pirates.iter()
                 .map(|hp| game_data.pirate_by_name(&hp.name)
                     .unwrap_or_else(|| panic!("Unknown pirate: {}", hp.name)))
@@ -908,14 +970,7 @@ fn main() {
             let course_indices: Vec<usize> = arena.foods.iter()
                 .filter_map(|food| course_map.get(food.as_str()).copied())
                 .collect();
-            let adjs: Vec<i32> = arena.pirates.iter()
-                .map(|hp| {
-                    let idx = *pirate_index.get(hp.name.as_str()).unwrap_or(&0);
-                    if idx < STR_ADJ.len() { STR_ADJ[idx] } else { 0 }
-                })
-                .collect();
-            arena_win_probs(&arena_pirates, &course_indices, &adjs, SIM_ITERATIONS,
-                day_idx as u64 * 17 + arena_idx as u64 * 31 + 42)
+            arena_win_probs(&arena_pirates, &course_indices, &roll_table)
         }).collect()
     }).collect();
 
@@ -930,7 +985,7 @@ fn main() {
         strat_comb_55_j1.add_day(&make_bets_current_exploit(probs, day_arenas, 0.55, 1), day_arenas);
     }
 
-    println!("=== STRATEGY COMPARISON (b={BASE}, life_adj applied) ===\n");
+    println!("=== STRATEGY COMPARISON (Model 4) ===\n");
     println!("  --- Pure model EV (opening odds payout) ---");
     strat_top_ev.print("Top-10 EV (model_p * odds)");
     strat_anc_55.print("Anchor 2:1 p>=0.55 + any, EV>=1");
