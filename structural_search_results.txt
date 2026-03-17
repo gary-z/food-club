@@ -1,0 +1,1113 @@
+=== Structural Model Search Results ===
+Baseline (linear): b=112 nr=4 fp=15 dv=14 me=7 → train=-1.07195, test=-1.08601
+
+Mispredicted pirates (outside 95% CI):
+  UNDER-EST: Ogletree(W=177,S=79,+117), Buck(W=189,S=89,+93), Orvinn(W=221,S=52,+84)
+  OVER-EST:  Lucky(W=182,S=82,-116), Crossblades(W=185,S=66,-115), Puffo(W=180,S=68,-86), Blackbeard(W=171,S=76,-71)
+
+
+--- Search 1: Exponential decay: upper = base * exp(-str * sd/10000) ---
+Best 15:
+  b=100 nr=5 fp=15 dv=10 me=7 sd=200 train=-1.07397 test=-1.08741
+  b=100 nr=5 fp=15 dv=10 me=8 sd=200 train=-1.07418 test=-1.08772
+  b=100 nr=6 fp=15 dv=10 me=7 sd=200 train=-1.07407 test=-1.08784
+  b=100 nr=5 fp=15 dv=10 me=6 sd=200 train=-1.07460 test=-1.08816
+  b=120 nr=6 fp=18 dv=14 me=8 sd=200 train=-1.07488 test=-1.08829
+  b=100 nr=6 fp=15 dv=10 me=8 sd=200 train=-1.07448 test=-1.08839
+  b=100 nr=6 fp=15 dv=10 me=6 sd=200 train=-1.07459 test=-1.08845
+  b=120 nr=6 fp=18 dv=14 me=7 sd=200 train=-1.07513 test=-1.08858
+  b=120 nr=5 fp=18 dv=10 me=8 sd=200 train=-1.07650 test=-1.08860
+  b=120 nr=5 fp=18 dv=10 me=7 sd=200 train=-1.07675 test=-1.08884
+  b=100 nr=6 fp=18 dv=10 me=8 sd=180 train=-1.07547 test=-1.08923
+  b=100 nr=6 fp=18 dv=10 me=7 sd=180 train=-1.07555 test=-1.08926
+  b=120 nr=6 fp=18 dv=10 me=8 sd=200 train=-1.07701 test=-1.08943
+  b=120 nr=6 fp=18 dv=10 me=7 sd=200 train=-1.07706 test=-1.08944
+  b=100 nr=6 fp=18 dv=14 me=8 sd=180 train=-1.07454 test=-1.08947
+Best per sd:
+  sd=80 : b=80 nr=6 fp=18 dv=16 me=8 test=-1.15997
+  sd=120: b=120 nr=6 fp=20 dv=20 me=8 test=-1.11841
+  sd=150: b=80 nr=6 fp=18 dv=10 me=8 test=-1.09574
+  sd=180: b=100 nr=6 fp=18 dv=10 me=8 test=-1.08923
+  sd=200: b=100 nr=5 fp=15 dv=10 me=7 test=-1.08741
+  sd=250: b=150 nr=4 fp=15 dv=10 me=8 test=-1.09154
+  sd=300: b=250 nr=3 fp=15 dv=10 me=8 test=-1.09437
+
+--- Search 2: Weight bonus: upper = base - str + floor(weight/W) ---
+Best 15:
+  b=110 nr=4 fp=15 dv=14 me=7 wb=80 train=-1.07213 test=-1.08667
+  b=110 nr=4 fp=15 dv=14 me=6 wb=80 train=-1.07235 test=-1.08676
+  b=110 nr=4 fp=15 dv=12 me=6 wb=80 train=-1.07302 test=-1.08699
+  b=110 nr=4 fp=15 dv=12 me=7 wb=80 train=-1.07292 test=-1.08703
+  b=112 nr=4 fp=16 dv=14 me=7 wb=50 train=-1.07397 test=-1.08707
+  b=112 nr=4 fp=16 dv=16 me=7 wb=50 train=-1.07386 test=-1.08740
+  b=112 nr=4 fp=16 dv=14 me=6 wb=50 train=-1.07448 test=-1.08741
+  b=112 nr=4 fp=16 dv=14 me=8 wb=50 train=-1.07411 test=-1.08745
+  b=112 nr=4 fp=15 dv=14 me=6 wb=80 train=-1.07346 test=-1.08748
+  b=110 nr=4 fp=15 dv=14 me=8 wb=80 train=-1.07277 test=-1.08754
+  b=110 nr=4 fp=15 dv=16 me=7 wb=80 train=-1.07260 test=-1.08756
+  b=112 nr=4 fp=15 dv=14 me=7 wb=80 train=-1.07318 test=-1.08759
+  b=112 nr=4 fp=16 dv=16 me=8 wb=50 train=-1.07390 test=-1.08767
+  b=112 nr=4 fp=16 dv=14 me=7 wb=80 train=-1.07410 test=-1.08776
+  b=110 nr=4 fp=15 dv=16 me=6 wb=80 train=-1.07296 test=-1.08781
+Best per wb:
+  wb=10: b=90 nr=3 fp=15 dv=10 me=8 test=-1.10464
+  wb=15: b=100 nr=4 fp=15 dv=14 me=7 test=-1.09632
+  wb=20: b=105 nr=4 fp=16 dv=14 me=7 test=-1.09160
+  wb=25: b=108 nr=4 fp=16 dv=14 me=7 test=-1.08899
+  wb=30: b=108 nr=4 fp=15 dv=14 me=7 test=-1.08869
+  wb=40: b=108 nr=4 fp=15 dv=14 me=7 test=-1.08869
+  wb=50: b=112 nr=4 fp=16 dv=14 me=7 test=-1.08707
+  wb=80: b=110 nr=4 fp=15 dv=14 me=7 test=-1.08667
+
+--- Search 3: Iterative fav: apply floor(upper/K) one at a time ---
+Best 15:
+  b=118 nr=5 fp=15 dv=18 me=7 train=-1.07176 test=-1.08572
+  b=120 nr=5 fp=16 dv=18 me=7 train=-1.07241 test=-1.08581
+  b=118 nr=5 fp=15 dv=16 me=7 train=-1.07239 test=-1.08598
+  b=118 nr=5 fp=16 dv=18 me=7 train=-1.07207 test=-1.08599
+  b=118 nr=5 fp=15 dv=18 me=8 train=-1.07185 test=-1.08602
+  b=120 nr=5 fp=16 dv=20 me=7 train=-1.07228 test=-1.08603
+  b=118 nr=5 fp=15 dv=18 me=6 train=-1.07248 test=-1.08616
+  b=118 nr=5 fp=15 dv=20 me=7 train=-1.07186 test=-1.08618
+  b=120 nr=5 fp=16 dv=18 me=8 train=-1.07251 test=-1.08619
+  b=120 nr=5 fp=15 dv=18 me=7 train=-1.07252 test=-1.08620
+  b=120 nr=6 fp=16 dv=20 me=7 train=-1.07210 test=-1.08622
+  b=120 nr=5 fp=16 dv=16 me=7 train=-1.07322 test=-1.08625
+  b=120 nr=5 fp=16 dv=18 me=6 train=-1.07313 test=-1.08625
+  b=118 nr=5 fp=16 dv=16 me=7 train=-1.07275 test=-1.08630
+  b=120 nr=5 fp=16 dv=20 me=8 train=-1.07230 test=-1.08633
+
+--- Search 4: Fixed constant fav: upper -= nf * K ---
+Best 15:
+  b=118 nr=4 fp=2  dv=16 me=7 train=-1.07446 test=-1.08894
+  b=118 nr=4 fp=2  dv=16 me=8 train=-1.07472 test=-1.08934
+  b=120 nr=4 fp=2  dv=16 me=7 train=-1.07541 test=-1.08935
+  b=118 nr=4 fp=2  dv=18 me=7 train=-1.07449 test=-1.08936
+  b=118 nr=4 fp=2  dv=14 me=7 train=-1.07533 test=-1.08942
+  b=118 nr=4 fp=2  dv=16 me=6 train=-1.07505 test=-1.08943
+  b=120 nr=4 fp=2  dv=18 me=7 train=-1.07522 test=-1.08954
+  b=118 nr=4 fp=2  dv=18 me=8 train=-1.07465 test=-1.08964
+  b=120 nr=4 fp=2  dv=16 me=8 train=-1.07568 test=-1.08975
+  b=120 nr=4 fp=2  dv=16 me=6 train=-1.07593 test=-1.08978
+  b=118 nr=4 fp=2  dv=14 me=6 train=-1.07584 test=-1.08980
+  b=116 nr=4 fp=2  dv=16 me=7 train=-1.07476 test=-1.08982
+  b=120 nr=4 fp=2  dv=18 me=8 train=-1.07540 test=-1.08984
+  b=118 nr=4 fp=2  dv=14 me=8 train=-1.07567 test=-1.08991
+  b=120 nr=5 fp=2  dv=20 me=7 train=-1.07485 test=-1.08997
+
+--- Search 5: Multiplicative fav: upper *= (pct/100)^nf ---
+Best 15:
+  b=120 nr=5 fp=95 dv=18 me=7 train=-1.07207 test=-1.08664
+  b=116 nr=4 fp=94 dv=14 me=7 train=-1.07267 test=-1.08677
+  b=120 nr=5 fp=95 dv=20 me=7 train=-1.07187 test=-1.08681
+  b=118 nr=5 fp=95 dv=18 me=7 train=-1.07211 test=-1.08683
+  b=114 nr=4 fp=94 dv=14 me=7 train=-1.07189 test=-1.08691
+  b=116 nr=4 fp=94 dv=14 me=6 train=-1.07306 test=-1.08702
+  b=116 nr=4 fp=94 dv=16 me=7 train=-1.07251 test=-1.08705
+  b=120 nr=5 fp=95 dv=18 me=8 train=-1.07230 test=-1.08706
+  b=120 nr=5 fp=95 dv=18 me=6 train=-1.07268 test=-1.08710
+  b=120 nr=5 fp=95 dv=16 me=7 train=-1.07293 test=-1.08714
+  b=120 nr=5 fp=95 dv=20 me=8 train=-1.07204 test=-1.08715
+  b=125 nr=6 fp=95 dv=20 me=7 train=-1.07247 test=-1.08717
+  b=118 nr=5 fp=95 dv=20 me=7 train=-1.07209 test=-1.08718
+  b=118 nr=5 fp=95 dv=16 me=7 train=-1.07284 test=-1.08720
+  b=116 nr=4 fp=94 dv=14 me=8 train=-1.07302 test=-1.08721
+
+--- Search 6: Position effect: upper *= (100-pos*step)/100 ---
+Best 15:
+  b=118 nr=5 fp=18 dv=10 me=7 ps=2  train=-1.07236 test=-1.08611
+  b=118 nr=5 fp=18 dv=14 me=7 ps=1  train=-1.07264 test=-1.08628
+  b=118 nr=5 fp=16 dv=10 me=7 ps=2  train=-1.07214 test=-1.08638
+  b=112 nr=4 fp=15 dv=10 me=7 ps=1  train=-1.07250 test=-1.08642
+  b=118 nr=5 fp=18 dv=12 me=7 ps=1  train=-1.07319 test=-1.08646
+  b=118 nr=5 fp=16 dv=14 me=7 ps=1  train=-1.07242 test=-1.08648
+  b=118 nr=5 fp=16 dv=12 me=7 ps=1  train=-1.07286 test=-1.08652
+  b=118 nr=5 fp=18 dv=12 me=7 ps=2  train=-1.07243 test=-1.08656
+  b=118 nr=5 fp=18 dv=10 me=6 ps=2  train=-1.07292 test=-1.08657
+  b=112 nr=4 fp=15 dv=12 me=7 ps=1  train=-1.07220 test=-1.08658
+  b=118 nr=5 fp=16 dv=10 me=6 ps=2  train=-1.07287 test=-1.08659
+  b=112 nr=4 fp=15 dv=10 me=6 ps=1  train=-1.07283 test=-1.08660
+  b=118 nr=5 fp=16 dv=12 me=6 ps=1  train=-1.07356 test=-1.08666
+  b=118 nr=5 fp=16 dv=14 me=6 ps=1  train=-1.07318 test=-1.08671
+  b=114 nr=4 fp=15 dv=10 me=7 ps=1  train=-1.07298 test=-1.08672
+
+--- Search 7: Weight-dep fav: upper -= nf * floor(weight/K) ---
+Best 15:
+  b=120 nr=4 fp=50 dv=16 me=7 train=-1.07667 test=-1.09193
+  b=120 nr=4 fp=50 dv=16 me=6 train=-1.07683 test=-1.09194
+  b=120 nr=4 fp=50 dv=18 me=7 train=-1.07658 test=-1.09217
+  b=120 nr=4 fp=50 dv=18 me=6 train=-1.07684 test=-1.09230
+  b=120 nr=4 fp=80 dv=16 me=7 train=-1.07960 test=-1.09245
+  b=120 nr=4 fp=50 dv=14 me=6 train=-1.07770 test=-1.09249
+  b=118 nr=4 fp=80 dv=16 me=7 train=-1.07918 test=-1.09251
+  b=120 nr=4 fp=80 dv=18 me=7 train=-1.07931 test=-1.09255
+  b=120 nr=4 fp=50 dv=14 me=7 train=-1.07762 test=-1.09258
+  b=120 nr=4 fp=80 dv=16 me=8 train=-1.07965 test=-1.09264
+  b=120 nr=4 fp=80 dv=18 me=8 train=-1.07929 test=-1.09265
+  b=118 nr=4 fp=80 dv=16 me=8 train=-1.07920 test=-1.09267
+  b=118 nr=4 fp=80 dv=18 me=7 train=-1.07910 test=-1.09282
+  b=118 nr=4 fp=80 dv=18 me=8 train=-1.07902 test=-1.09287
+  b=120 nr=4 fp=50 dv=16 me=8 train=-1.07752 test=-1.09297
+
+--- Search 8: Tiebreak modes ---
+  tb=0 (later-wins): train=-1.07195 test=-1.08601
+  tb=1 (earlier-wins): train=-1.20228 test=-1.21010
+  tb=2 (random): train=-1.10482 test=-1.11522
+
+--- Search 9: Iterative fav + position ---
+Best 15:
+  b=118 nr=5 fp=15 dv=18 me=7 ps=0 train=-1.07176 test=-1.08572
+  b=118 nr=5 fp=15 dv=14 me=7 ps=1 train=-1.07163 test=-1.08580
+  b=120 nr=5 fp=16 dv=18 me=7 ps=0 train=-1.07241 test=-1.08581
+  b=120 nr=5 fp=16 dv=14 me=7 ps=1 train=-1.07194 test=-1.08582
+  b=118 nr=5 fp=15 dv=16 me=7 ps=0 train=-1.07239 test=-1.08598
+  b=118 nr=5 fp=16 dv=18 me=7 ps=0 train=-1.07207 test=-1.08599
+  b=118 nr=5 fp=15 dv=18 me=8 ps=0 train=-1.07185 test=-1.08602
+  b=120 nr=5 fp=16 dv=20 me=7 ps=0 train=-1.07228 test=-1.08603
+  b=118 nr=5 fp=16 dv=14 me=7 ps=1 train=-1.07194 test=-1.08607
+  b=118 nr=5 fp=15 dv=18 me=6 ps=0 train=-1.07248 test=-1.08616
+  b=118 nr=5 fp=15 dv=14 me=8 ps=1 train=-1.07174 test=-1.08617
+  b=118 nr=5 fp=15 dv=20 me=7 ps=0 train=-1.07186 test=-1.08618
+  b=118 nr=5 fp=15 dv=14 me=6 ps=1 train=-1.07235 test=-1.08619
+  b=120 nr=5 fp=16 dv=14 me=6 ps=1 train=-1.07265 test=-1.08619
+  b=120 nr=5 fp=16 dv=18 me=8 ps=0 train=-1.07251 test=-1.08619
+
+=== SUMMARY (Searches 1-9, baseline test=-1.08601) ===
+Search 1 (exp decay):      best test=-1.08741  WORSE  (linear str better than exponential)
+Search 2 (weight bonus):   best test=-1.08667  WORSE  (weight adds noise)
+Search 3 (iterative fav):  best test=-1.08572  BETTER (+0.00029, b=118 nr=5 fp=15 dv=18 me=7)
+Search 4 (fixed fav):      best test=-1.08894  WORSE  (constant reduction too crude)
+Search 5 (mul fav):        best test=-1.08664  WORSE  (multiplicative fav slightly worse)
+Search 6 (position):       best test=-1.08611  WORSE  (position effect marginal)
+Search 7 (wt-dep fav):     best test=-1.09193  WORSE  (weight-based fav reduction bad)
+Search 8 (tiebreak):       tb=0 best (-1.08601), tb=1 terrible (-1.21010), tb=2 bad (-1.11522)
+Search 9 (iter fav+pos):   best test=-1.08572  SAME AS SEARCH 3 (ps=0, position didn't help)
+Search 10 (allergy mul):   STILL RUNNING
+
+Best overall: Search 3 (iterative fav), test=-1.08572
+
+=== PENDING SEARCHES (batch 3, coded but not yet run) ===
+Search 11: Fav/allergy overlap modes (allergy-prio, fav-prio, neutral, both)
+Search 12: Per-pirate strength adjustments (for 7 mispredicted pirates)
+Search 13: Flat allergy (deterministic wo per allergy instead of dice)
+Search 14: Allergy percentage bonus (upper += na * upper * ap / 100)
+Search 15: Combined fav die+weight (upper -= nf * floor((die+weight)/K))
+
+=== ANALYSIS OF MISPREDICTED PIRATES ===
+Under-estimated (win MORE than predicted):
+  Ogletree: S=79, W=177, 1 fav cat (Dairy), 1 allergy cat (Breads), ~5 fav courses, ~3 allergy courses
+  Buck:     S=89, W=189, 1 fav cat (Candy), 1 allergy cat (Vegetables), ~4 fav courses, ~4 allergy courses
+  Orvinn:   S=52, W=221, 3 fav cats (Candy/Slushies/Pizza), 1 allergy cat (Fruits), ~10 fav courses, ~4 allergy courses
+
+Over-estimated (win LESS than predicted):
+  Lucky:       S=82, W=182, 1 fav cat (Gross), 1 allergy cat (Pizza), ~5 fav courses, ~5 allergy courses
+  Crossblades: S=66, W=185, 2 fav cats (Slushies/Pizza), 1 allergy cat (Salty), ~7 fav courses, ~4 allergy courses
+  Puffo:       S=68, W=180, 3 fav cats (Candy/Smoothies/Slushies), 1 allergy cat (Meats), ~10 fav courses, ~6 allergy courses
+  Blackbeard:  S=76, W=171, 2 fav cats (Vegetables/Fruits), 1 allergy cat (Dairy), ~7 fav courses, ~5 allergy courses
+
+KEY PATTERN: Over-estimated pirates average 5.0 allergy courses vs 3.67 for under-estimated.
+This suggests allergy penalty may be too weak — need stronger penalties to properly penalize high-allergy pirates.
+Also: some courses can be both fav and allergy (e.g. Bubbling Blueberry Pizza for Orvinn is Pizza=fav, Fruits=allergy).
+Currently allergy takes priority when overlapping — testing other modes in Search 11.
+
+=== BRAINSTORM AGENT IDEAS (not yet tested) ===
+
+Variation 1: ALLERGY ORDER SWAP (highest priority)
+  Current: raw_upper = base - str + allergy_dmg; upper -= nf*floor(upper/K)
+  Proposed: raw_upper = base - str; upper -= nf*floor(upper/K); upper += allergy_dmg
+  Rationale: Allergy-before-favs inflates fav reduction for pirates with both.
+  Puffo (E[na]=2.0, E[nf]=3.25) gets spurious bonus. Should fix over-prediction.
+
+Variation 3: PERCENTAGE FAVS (smooth, no floor boundaries)
+  upper = floor(upper * (100 - nf * P) / 100)
+  P in {5,6,7,8,9,10,12}. Avoids sawtooth from floor(upper/K).
+  Lucky sits at die=30 boundary (floor(30/15)=2 vs floor(29/15)=1).
+
+Variation 4: STRENGTH-DEPENDENT ALLERGY RESISTANCE
+  effective_wo = max(wo - floor(strength/K), 0)
+  K in {10,15,20,25,30,40,50}
+  Strong pirates resist allergies more. Helps Buck (S=89).
+
+Variation 5: WEIGHT-TO-ALLERGY DIVISOR
+  wo = min(floor((221 - weight) / K), max_effect), K in {2,3,4,5}
+  Currently K=2 hardcoded. Different K changes mid-weight pirate allergy.
+
+Variation 6: QUADRATIC STRENGTH
+  upper = base - strength - floor(strength^2 / K)
+  K in {500,750,1000,1500,2000,3000}. Steeper penalty for strong pirates.
+
+--- Search 11: Fav/allergy overlap modes ---
+Modes: 0=allergy-priority(current), 1=fav-priority, 2=neutral, 3=both
+  om=0 (allergy-prio): best b=112 nr=4 fp=15 dv=14 me=7 train=-1.07195 test=-1.08601
+  om=1 (fav-prio): best b=114 nr=4 fp=15 dv=14 me=6 train=-1.09035 test=-1.10505
+  om=2 (neutral): best b=118 nr=5 fp=16 dv=18 me=6 train=-1.07953 test=-1.09360
+  om=3 (both): best b=118 nr=5 fp=18 dv=18 me=7 train=-1.07572 test=-1.08956
+
+--- Search 12: Per-pirate strength adjustments ---
+  Ogletree -> index 4
+  Buck Cutlass -> index 18
+  Orvinn -> index 2
+  Lucky -> index 3
+  Crossblades -> index 10
+  Puffo -> index 7
+  Blackbeard -> index 17
+  Individual adj (baseline b=112 nr=4 fp=15 dv=14 me=7):
+    Ogletree: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Buck Cutlass: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Orvinn: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Lucky: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Crossblades: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Puffo: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Blackbeard: best_adj=+0, test=-1.08601 (delta=+0.00000)
+  Combined adj: test=-1.12795 (delta=-0.04194)
+  Grid search under-est trio (Ogletree, Buck, Orvinn):
+    Best: Ogletree=+0, Buck=+0, Orvinn=+0 test=-1.08601 (delta=+0.00000)
+
+--- Search 13: Flat allergy: dmg = na * wo (deterministic) ---
+Best 15:
+  b=116 nr=4 fp=16 dv=16 me=5  train=-1.07664 test=-1.08997
+  b=116 nr=4 fp=16 dv=14 me=5  train=-1.07706 test=-1.08997
+  b=118 nr=5 fp=18 dv=18 me=5  train=-1.07655 test=-1.09059
+  b=118 nr=5 fp=16 dv=18 me=5  train=-1.07585 test=-1.09060
+  b=114 nr=4 fp=15 dv=14 me=5  train=-1.07625 test=-1.09079
+  b=116 nr=4 fp=16 dv=18 me=5  train=-1.07719 test=-1.09092
+  b=114 nr=4 fp=16 dv=14 me=5  train=-1.07757 test=-1.09097
+  b=116 nr=4 fp=16 dv=12 me=5  train=-1.07848 test=-1.09098
+  b=118 nr=5 fp=16 dv=16 me=5  train=-1.07662 test=-1.09100
+  b=114 nr=4 fp=16 dv=16 me=5  train=-1.07735 test=-1.09111
+  b=114 nr=4 fp=15 dv=16 me=5  train=-1.07614 test=-1.09113
+  b=118 nr=5 fp=18 dv=16 me=5  train=-1.07744 test=-1.09120
+  b=116 nr=5 fp=16 dv=18 me=5  train=-1.07700 test=-1.09128
+  b=112 nr=4 fp=15 dv=14 me=5  train=-1.07727 test=-1.09148
+  b=114 nr=4 fp=15 dv=12 me=5  train=-1.07747 test=-1.09155
+
+--- Search 14: Allergy pct: upper += na * upper * ap / 100 ---
+Best 15:
+  b=112 nr=3 fp=15 dv=12 ap=15 train=-1.07599 test=-1.09061
+  b=118 nr=4 fp=16 dv=16 ap=10 train=-1.07693 test=-1.09084
+  b=116 nr=4 fp=16 dv=14 ap=10 train=-1.07722 test=-1.09090
+  b=118 nr=4 fp=16 dv=14 ap=10 train=-1.07749 test=-1.09093
+  b=112 nr=3 fp=15 dv=10 ap=15 train=-1.07700 test=-1.09103
+  b=116 nr=4 fp=16 dv=16 ap=10 train=-1.07695 test=-1.09113
+  b=118 nr=4 fp=18 dv=16 ap=10 train=-1.07785 test=-1.09144
+  b=112 nr=3 fp=14 dv=12 ap=15 train=-1.07640 test=-1.09160
+  b=118 nr=4 fp=18 dv=14 ap=10 train=-1.07853 test=-1.09164
+  b=118 nr=4 fp=16 dv=18 ap=10 train=-1.07731 test=-1.09169
+  b=116 nr=4 fp=16 dv=12 ap=10 train=-1.07855 test=-1.09174
+  b=112 nr=3 fp=15 dv=14 ap=15 train=-1.07668 test=-1.09185
+  b=112 nr=3 fp=14 dv=10 ap=15 train=-1.07732 test=-1.09196
+  b=118 nr=4 fp=16 dv=12 ap=10 train=-1.07902 test=-1.09198
+  b=114 nr=3 fp=15 dv=12 ap=15 train=-1.07757 test=-1.09203
+
+--- Search 15: Fav die+wt: upper -= nf * floor((die+weight)/K) ---
+Best 15:
+  b=120 nr=5 fp=80 dv=18 me=7 train=-1.07433 test=-1.08934
+  b=118 nr=4 fp=80 dv=16 me=7 train=-1.07521 test=-1.08941
+  b=120 nr=5 fp=80 dv=18 me=6 train=-1.07482 test=-1.08969
+  b=118 nr=4 fp=80 dv=16 me=6 train=-1.07575 test=-1.08983
+  b=118 nr=4 fp=80 dv=18 me=7 train=-1.07531 test=-1.08985
+  b=118 nr=4 fp=80 dv=14 me=7 train=-1.07602 test=-1.08987
+  b=120 nr=4 fp=80 dv=16 me=7 train=-1.07589 test=-1.09000
+  b=118 nr=4 fp=80 dv=16 me=8 train=-1.07573 test=-1.09008
+  b=120 nr=5 fp=80 dv=16 me=7 train=-1.07544 test=-1.09015
+  b=118 nr=4 fp=80 dv=14 me=6 train=-1.07648 test=-1.09019
+  b=120 nr=4 fp=80 dv=16 me=6 train=-1.07618 test=-1.09020
+  b=120 nr=5 fp=80 dv=18 me=8 train=-1.07498 test=-1.09021
+  b=120 nr=4 fp=80 dv=18 me=7 train=-1.07579 test=-1.09025
+  b=118 nr=4 fp=80 dv=18 me=6 train=-1.07595 test=-1.09039
+  b=118 nr=4 fp=80 dv=18 me=8 train=-1.07574 test=-1.09042
+
+--- Search 11: Fav/allergy overlap modes ---
+Modes: 0=allergy-priority(current), 1=fav-priority, 2=neutral, 3=both
+  om=0 (allergy-prio): best b=112 nr=4 fp=15 dv=14 me=7 train=-1.07195 test=-1.08601
+  om=1 (fav-prio): best b=114 nr=4 fp=15 dv=14 me=6 train=-1.09035 test=-1.10505
+  om=2 (neutral): best b=118 nr=5 fp=16 dv=18 me=6 train=-1.07953 test=-1.09360
+  om=3 (both): best b=118 nr=5 fp=18 dv=18 me=7 train=-1.07572 test=-1.08956
+
+--- Search 12: Per-pirate strength adjustments ---
+  Ogletree -> index 4
+  Buck Cutlass -> index 18
+  Orvinn -> index 2
+  Lucky -> index 3
+  Crossblades -> index 10
+  Puffo -> index 7
+  Blackbeard -> index 17
+  Individual adj (baseline b=112 nr=4 fp=15 dv=14 me=7):
+    Ogletree: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Buck Cutlass: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Orvinn: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Lucky: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Crossblades: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Puffo: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Blackbeard: best_adj=+0, test=-1.08601 (delta=+0.00000)
+  Combined adj: test=-1.12795 (delta=-0.04194)
+  Grid search under-est trio (Ogletree, Buck, Orvinn):
+    Best: Ogletree=+0, Buck=+0, Orvinn=+0 test=-1.08601 (delta=+0.00000)
+
+--- Search 13: Flat allergy: dmg = na * wo (deterministic) ---
+Best 15:
+  b=116 nr=4 fp=16 dv=16 me=5  train=-1.07664 test=-1.08997
+  b=116 nr=4 fp=16 dv=14 me=5  train=-1.07706 test=-1.08997
+  b=118 nr=5 fp=18 dv=18 me=5  train=-1.07655 test=-1.09059
+  b=118 nr=5 fp=16 dv=18 me=5  train=-1.07585 test=-1.09060
+  b=114 nr=4 fp=15 dv=14 me=5  train=-1.07625 test=-1.09079
+  b=116 nr=4 fp=16 dv=18 me=5  train=-1.07719 test=-1.09092
+  b=114 nr=4 fp=16 dv=14 me=5  train=-1.07757 test=-1.09097
+  b=116 nr=4 fp=16 dv=12 me=5  train=-1.07848 test=-1.09098
+  b=118 nr=5 fp=16 dv=16 me=5  train=-1.07662 test=-1.09100
+  b=114 nr=4 fp=16 dv=16 me=5  train=-1.07735 test=-1.09111
+  b=114 nr=4 fp=15 dv=16 me=5  train=-1.07614 test=-1.09113
+  b=118 nr=5 fp=18 dv=16 me=5  train=-1.07744 test=-1.09120
+  b=116 nr=5 fp=16 dv=18 me=5  train=-1.07700 test=-1.09128
+  b=112 nr=4 fp=15 dv=14 me=5  train=-1.07727 test=-1.09148
+  b=114 nr=4 fp=15 dv=12 me=5  train=-1.07747 test=-1.09155
+
+--- Search 14: Allergy pct: upper += na * upper * ap / 100 ---
+Best 15:
+  b=112 nr=3 fp=15 dv=12 ap=15 train=-1.07599 test=-1.09061
+  b=118 nr=4 fp=16 dv=16 ap=10 train=-1.07693 test=-1.09084
+  b=116 nr=4 fp=16 dv=14 ap=10 train=-1.07722 test=-1.09090
+  b=118 nr=4 fp=16 dv=14 ap=10 train=-1.07749 test=-1.09093
+  b=112 nr=3 fp=15 dv=10 ap=15 train=-1.07700 test=-1.09103
+  b=116 nr=4 fp=16 dv=16 ap=10 train=-1.07695 test=-1.09113
+  b=118 nr=4 fp=18 dv=16 ap=10 train=-1.07785 test=-1.09144
+  b=112 nr=3 fp=14 dv=12 ap=15 train=-1.07640 test=-1.09160
+  b=118 nr=4 fp=18 dv=14 ap=10 train=-1.07853 test=-1.09164
+  b=118 nr=4 fp=16 dv=18 ap=10 train=-1.07731 test=-1.09169
+  b=116 nr=4 fp=16 dv=12 ap=10 train=-1.07855 test=-1.09174
+  b=112 nr=3 fp=15 dv=14 ap=15 train=-1.07668 test=-1.09185
+  b=112 nr=3 fp=14 dv=10 ap=15 train=-1.07732 test=-1.09196
+  b=118 nr=4 fp=16 dv=12 ap=10 train=-1.07902 test=-1.09198
+  b=114 nr=3 fp=15 dv=12 ap=15 train=-1.07757 test=-1.09203
+
+--- Search 15: Fav die+wt: upper -= nf * floor((die+weight)/K) ---
+Best 15:
+  b=120 nr=5 fp=80 dv=18 me=7 train=-1.07433 test=-1.08934
+  b=118 nr=4 fp=80 dv=16 me=7 train=-1.07521 test=-1.08941
+  b=120 nr=5 fp=80 dv=18 me=6 train=-1.07482 test=-1.08969
+  b=118 nr=4 fp=80 dv=16 me=6 train=-1.07575 test=-1.08983
+  b=118 nr=4 fp=80 dv=18 me=7 train=-1.07531 test=-1.08985
+  b=118 nr=4 fp=80 dv=14 me=7 train=-1.07602 test=-1.08987
+  b=120 nr=4 fp=80 dv=16 me=7 train=-1.07589 test=-1.09000
+  b=118 nr=4 fp=80 dv=16 me=8 train=-1.07573 test=-1.09008
+  b=120 nr=5 fp=80 dv=16 me=7 train=-1.07544 test=-1.09015
+  b=118 nr=4 fp=80 dv=14 me=6 train=-1.07648 test=-1.09019
+  b=120 nr=4 fp=80 dv=16 me=6 train=-1.07618 test=-1.09020
+  b=120 nr=5 fp=80 dv=18 me=8 train=-1.07498 test=-1.09021
+  b=120 nr=4 fp=80 dv=18 me=7 train=-1.07579 test=-1.09025
+  b=118 nr=4 fp=80 dv=18 me=6 train=-1.07595 test=-1.09039
+  b=118 nr=4 fp=80 dv=18 me=8 train=-1.07574 test=-1.09042
+
+--- Search 16: Favs add to strength: eff_str = str + nf*bonus, upper = base - eff_str ---
+Best 15:
+  b=125 nr=5 dv=20 me=7 fsb=2 ao=0 train=-1.07478 test=-1.08864
+  b=125 nr=5 dv=20 me=7 fsb=2 ao=1 train=-1.07478 test=-1.08864
+  b=118 nr=4 dv=16 me=7 fsb=2 ao=0 train=-1.07446 test=-1.08894
+  b=118 nr=4 dv=16 me=7 fsb=2 ao=1 train=-1.07446 test=-1.08894
+  b=125 nr=5 dv=20 me=8 fsb=2 ao=0 train=-1.07497 test=-1.08897
+  b=125 nr=5 dv=20 me=8 fsb=2 ao=1 train=-1.07497 test=-1.08897
+  b=125 nr=5 dv=18 me=7 fsb=2 ao=0 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=18 me=7 fsb=2 ao=1 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=20 me=6 fsb=2 ao=0 train=-1.07542 test=-1.08918
+  b=125 nr=5 dv=20 me=6 fsb=2 ao=1 train=-1.07542 test=-1.08918
+  b=118 nr=4 dv=16 me=8 fsb=2 ao=0 train=-1.07472 test=-1.08934
+  b=118 nr=4 dv=16 me=8 fsb=2 ao=1 train=-1.07472 test=-1.08934
+  b=120 nr=4 dv=16 me=7 fsb=2 ao=0 train=-1.07541 test=-1.08935
+  b=120 nr=4 dv=16 me=7 fsb=2 ao=1 train=-1.07541 test=-1.08935
+  b=118 nr=4 dv=18 me=7 fsb=2 ao=0 train=-1.07449 test=-1.08936
+Best per fsb:
+  fsb=1 : b=120 nr=5 dv=20 me=7 ao=0 test=-1.09812
+  fsb=2 : b=125 nr=5 dv=20 me=7 ao=0 test=-1.08864
+  fsb=3 : b=125 nr=5 dv=20 me=7 ao=0 test=-1.09012
+  fsb=4 : b=130 nr=5 dv=20 me=7 ao=0 test=-1.10054
+  fsb=5 : b=130 nr=4 dv=18 me=8 ao=0 test=-1.11808
+  fsb=6 : b=130 nr=3 dv=14 me=8 ao=0 test=-1.13912
+  fsb=7 : b=130 nr=3 dv=16 me=8 ao=0 test=-1.17612
+  fsb=8 : b=130 nr=3 dv=16 me=8 ao=0 test=-1.24177
+  fsb=10: b=130 nr=3 dv=16 me=8 ao=1 test=-1.52911
+
+--- Search 17: Allergy order swap (0=before-fav, 1=after-fav) ---
+Best 15:
+  b=118 nr=5 fm=iter fp=14 dv=18 me=6 ao=1 train=-1.07183 test=-1.08537
+  b=120 nr=5 fm=iter fp=15 dv=18 me=6 ao=1 train=-1.07235 test=-1.08540
+  b=118 nr=5 fm=iter fp=14 dv=16 me=6 ao=1 train=-1.07239 test=-1.08556
+  b=118 nr=5 fm=iter fp=15 dv=18 me=6 ao=1 train=-1.07198 test=-1.08566
+  b=118 nr=5 fm=iter fp=15 dv=18 me=7 ao=0 train=-1.07176 test=-1.08572
+  b=120 nr=5 fm=iter fp=15 dv=16 me=6 ao=1 train=-1.07311 test=-1.08579
+  b=120 nr=5 fm=iter fp=16 dv=18 me=7 ao=0 train=-1.07241 test=-1.08581
+  b=118 nr=5 fm=iter fp=15 dv=16 me=6 ao=1 train=-1.07261 test=-1.08591
+  b=118 nr=5 fm=iter fp=15 dv=16 me=7 ao=0 train=-1.07239 test=-1.08598
+  b=118 nr=5 fm=iter fp=16 dv=18 me=7 ao=0 train=-1.07207 test=-1.08599
+  b=112 nr=4 fm=bulk fp=15 dv=14 me=7 ao=0 train=-1.07195 test=-1.08601
+  b=118 nr=5 fm=iter fp=15 dv=18 me=8 ao=0 train=-1.07185 test=-1.08602
+  b=118 nr=5 fm=bulk fp=18 dv=18 me=7 ao=0 train=-1.07271 test=-1.08604
+  b=116 nr=4 fm=mul  fp=94 dv=14 me=6 ao=1 train=-1.07234 test=-1.08606
+  b=120 nr=5 fm=iter fp=15 dv=18 me=7 ao=1 train=-1.07282 test=-1.08608
+Best ao=0: b=118 nr=5 fm=iter fp=15 dv=18 me=7 test=-1.08572
+Best ao=1: b=118 nr=5 fm=iter fp=14 dv=18 me=6 test=-1.08537
+
+--- Search 18: Fav from strength: upper -= nf * floor(str/K) ---
+Best 15:
+  b=125 nr=4 fk=25 dv=18 me=7 ao=0 train=-1.07664 test=-1.08941
+  b=125 nr=4 fk=25 dv=18 me=6 ao=0 train=-1.07719 test=-1.08973
+  b=125 nr=4 fk=25 dv=16 me=7 ao=0 train=-1.07741 test=-1.08984
+  b=130 nr=5 fk=25 dv=18 me=7 ao=0 train=-1.07771 test=-1.08985
+  b=125 nr=4 fk=25 dv=18 me=8 ao=0 train=-1.07691 test=-1.08990
+  b=125 nr=4 fk=25 dv=16 me=6 ao=0 train=-1.07789 test=-1.09008
+  b=130 nr=5 fk=25 dv=18 me=6 ao=0 train=-1.07830 test=-1.09018
+  b=130 nr=5 fk=25 dv=18 me=8 ao=0 train=-1.07798 test=-1.09041
+  b=125 nr=4 fk=25 dv=16 me=8 ao=0 train=-1.07774 test=-1.09042
+  b=125 nr=4 fk=25 dv=14 me=7 ao=0 train=-1.07887 test=-1.09097
+  b=125 nr=4 fk=25 dv=18 me=8 ao=1 train=-1.07772 test=-1.09104
+  b=125 nr=4 fk=25 dv=18 me=7 ao=1 train=-1.07786 test=-1.09108
+  b=125 nr=4 fk=25 dv=14 me=6 ao=0 train=-1.07930 test=-1.09115
+  b=118 nr=3 fk=25 dv=14 me=7 ao=0 train=-1.07798 test=-1.09115
+  b=130 nr=5 fk=25 dv=16 me=7 ao=0 train=-1.07931 test=-1.09118
+
+--- Search 19: Nonlinear strength (3=quadratic, 4=sqrt) ---
+Best 15:
+  b=80  nr=5 fp=18 dv=18 me=7 sm=quad sk=150 train=-1.07266 test=-1.08672
+  b=80  nr=5 fp=18 dv=18 me=6 sm=quad sk=150 train=-1.07278 test=-1.08676
+  b=112 nr=5 fp=18 dv=12 me=7 sm=sqrt sk=10  train=-1.07500 test=-1.08707
+  b=80  nr=5 fp=18 dv=16 me=6 sm=quad sk=150 train=-1.07349 test=-1.08713
+  b=80  nr=5 fp=18 dv=16 me=7 sm=quad sk=150 train=-1.07343 test=-1.08717
+  b=112 nr=5 fp=18 dv=12 me=8 sm=sqrt sk=10  train=-1.07513 test=-1.08735
+  b=80  nr=5 fp=18 dv=18 me=8 sm=quad sk=150 train=-1.07328 test=-1.08755
+  b=112 nr=5 fp=18 dv=12 me=6 sm=sqrt sk=10  train=-1.07583 test=-1.08790
+  b=80  nr=5 fp=18 dv=16 me=8 sm=quad sk=150 train=-1.07410 test=-1.08807
+  b=80  nr=5 fp=18 dv=14 me=6 sm=quad sk=150 train=-1.07494 test=-1.08825
+  b=80  nr=5 fp=18 dv=14 me=7 sm=quad sk=150 train=-1.07492 test=-1.08835
+  b=112 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=10  train=-1.07368 test=-1.08839
+  b=110 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=10  train=-1.07546 test=-1.08842
+  b=112 nr=5 fp=16 dv=12 me=8 sm=sqrt sk=10  train=-1.07350 test=-1.08847
+  b=100 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=9   train=-1.07635 test=-1.08863
+Best quadratic: b=80 nr=5 fp=18 dv=18 me=7 sk=150 test=-1.08672
+Best sqrt: b=112 nr=5 fp=18 dv=12 me=7 sk=10 test=-1.08707
+
+--- Search 20: Fine grid around ao=1 best (iter fav, allergy-after) ---
+Best 25:
+  b=121 nr=6 fp=16 dv=20 me=6 ao=1 ps=0 tb=0 train=-1.07221 test=-1.08519
+  b=117 nr=5 fp=14 dv=17 me=6 ao=1 ps=0 tb=0 train=-1.07142 test=-1.08524
+  b=117 nr=5 fp=14 dv=18 me=6 ao=1 ps=0 tb=0 train=-1.07126 test=-1.08527
+  b=118 nr=5 fp=14 dv=18 me=6 ao=1 ps=0 tb=0 train=-1.07183 test=-1.08537
+  b=118 nr=5 fp=14 dv=17 me=6 ao=1 ps=0 tb=0 train=-1.07202 test=-1.08537
+  b=119 nr=5 fp=15 dv=18 me=6 ao=1 ps=0 tb=0 train=-1.07201 test=-1.08538
+  b=120 nr=5 fp=15 dv=18 me=6 ao=1 ps=0 tb=0 train=-1.07235 test=-1.08540
+  b=117 nr=5 fp=14 dv=16 me=6 ao=1 ps=0 tb=0 train=-1.07178 test=-1.08541
+  b=121 nr=6 fp=16 dv=19 me=6 ao=1 ps=0 tb=0 train=-1.07262 test=-1.08543
+  b=121 nr=5 fp=16 dv=19 me=6 ao=1 ps=0 tb=0 train=-1.07288 test=-1.08543
+  b=121 nr=5 fp=16 dv=18 me=6 ao=1 ps=0 tb=0 train=-1.07307 test=-1.08545
+  b=120 nr=5 fp=15 dv=19 me=6 ao=1 ps=0 tb=0 train=-1.07222 test=-1.08545
+  b=119 nr=5 fp=15 dv=17 me=6 ao=1 ps=0 tb=0 train=-1.07227 test=-1.08546
+  b=119 nr=5 fp=15 dv=19 me=6 ao=1 ps=0 tb=0 train=-1.07193 test=-1.08548
+  b=117 nr=5 fp=14 dv=19 me=6 ao=1 ps=0 tb=0 train=-1.07128 test=-1.08548
+  b=120 nr=5 fp=15 dv=17 me=6 ao=1 ps=0 tb=0 train=-1.07264 test=-1.08551
+  b=118 nr=5 fp=14 dv=19 me=6 ao=1 ps=0 tb=0 train=-1.07182 test=-1.08555
+  b=118 nr=5 fp=14 dv=16 me=6 ao=1 ps=0 tb=0 train=-1.07239 test=-1.08556
+  b=121 nr=5 fp=16 dv=20 me=6 ao=1 ps=0 tb=0 train=-1.07284 test=-1.08558
+  b=121 nr=5 fp=16 dv=17 me=6 ao=1 ps=0 tb=0 train=-1.07343 test=-1.08562
+  b=122 nr=6 fp=16 dv=20 me=6 ao=1 ps=0 tb=0 train=-1.07225 test=-1.08563
+  b=118 nr=5 fp=15 dv=18 me=6 ao=1 ps=0 tb=0 train=-1.07198 test=-1.08566
+  b=120 nr=5 fp=15 dv=20 me=6 ao=1 ps=0 tb=0 train=-1.07226 test=-1.08568
+  b=118 nr=5 fp=15 dv=17 me=6 ao=1 ps=0 tb=0 train=-1.07220 test=-1.08569
+  b=120 nr=6 fp=15 dv=20 me=6 ao=1 ps=0 tb=0 train=-1.07197 test=-1.08571
+Best ao=0: b=117 nr=5 fp=15 dv=18 me=7 ps=0 tb=0 test=-1.08572
+Best ao=1: b=121 nr=6 fp=16 dv=20 me=6 ps=0 tb=0 test=-1.08519
+Best with position: b=117 nr=5 fp=14 dv=20 me=6 ao=1 ps=5 tb=2 test=-1.08675
+
+--- Search 21: ao=1 + multiplicative fav (PosMul-like) ---
+Best 15:
+  b=116 nr=4 fp=94 dv=14 me=6 ps=0 tb=0 train=-1.07234 test=-1.08606
+  b=116 nr=4 fp=94 dv=16 me=6 ps=0 tb=0 train=-1.07222 test=-1.08639
+  b=120 nr=5 fp=94 dv=18 me=6 ps=0 tb=0 train=-1.07191 test=-1.08656
+  b=116 nr=4 fp=94 dv=14 me=5 ps=0 tb=0 train=-1.07302 test=-1.08662
+  b=120 nr=5 fp=95 dv=18 me=6 ps=0 tb=0 train=-1.07246 test=-1.08665
+  b=116 nr=4 fp=94 dv=14 me=7 ps=0 tb=0 train=-1.07286 test=-1.08672
+  b=118 nr=5 fp=94 dv=18 me=6 ps=0 tb=0 train=-1.07176 test=-1.08678
+  b=114 nr=4 fp=93 dv=14 me=6 ps=0 tb=0 train=-1.07218 test=-1.08679
+  b=116 nr=4 fp=94 dv=12 me=6 ps=0 tb=0 train=-1.07355 test=-1.08680
+  b=114 nr=4 fp=94 dv=14 me=6 ps=0 tb=0 train=-1.07217 test=-1.08682
+  b=118 nr=5 fp=95 dv=18 me=6 ps=0 tb=0 train=-1.07281 test=-1.08689
+  b=116 nr=4 fp=94 dv=16 me=7 ps=0 tb=0 train=-1.07262 test=-1.08691
+  b=120 nr=5 fp=95 dv=18 me=7 ps=0 tb=0 train=-1.07260 test=-1.08694
+  b=120 nr=5 fp=94 dv=16 me=6 ps=0 tb=0 train=-1.07268 test=-1.08696
+  b=118 nr=5 fp=94 dv=16 me=6 ps=0 tb=0 train=-1.07239 test=-1.08701
+Best no-pos: b=116 nr=4 fp=94 dv=14 me=6 test=-1.08606
+Best with-pos: b=112 nr=4 fp=93 dv=18 me=6 ps=5 tb=2 test=-1.08708
+
+--- Search 22: ao=1 + favs-add-to-strength ---
+Best 15:
+  b=122 nr=5 dv=20 me=7 fsb=2 ps=0 tb=0 train=-1.07405 test=-1.08864
+  b=125 nr=5 dv=20 me=7 fsb=2 ps=0 tb=0 train=-1.07478 test=-1.08864
+  b=118 nr=4 dv=16 me=7 fsb=2 ps=0 tb=0 train=-1.07446 test=-1.08894
+  b=122 nr=5 dv=18 me=7 fsb=2 ps=0 tb=0 train=-1.07471 test=-1.08897
+  b=125 nr=5 dv=20 me=8 fsb=2 ps=0 tb=0 train=-1.07497 test=-1.08897
+  b=122 nr=5 dv=20 me=8 fsb=2 ps=0 tb=0 train=-1.07425 test=-1.08899
+  b=125 nr=5 dv=18 me=7 fsb=2 ps=0 tb=0 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=20 me=6 fsb=2 ps=0 tb=0 train=-1.07542 test=-1.08918
+  b=122 nr=5 dv=20 me=6 fsb=2 ps=0 tb=0 train=-1.07477 test=-1.08924
+  b=128 nr=6 dv=20 me=7 fsb=2 ps=0 tb=0 train=-1.07571 test=-1.08929
+  b=118 nr=4 dv=16 me=8 fsb=2 ps=0 tb=0 train=-1.07472 test=-1.08934
+  b=120 nr=4 dv=16 me=7 fsb=2 ps=0 tb=0 train=-1.07541 test=-1.08935
+  b=118 nr=4 dv=18 me=7 fsb=2 ps=0 tb=0 train=-1.07449 test=-1.08936
+  b=122 nr=5 dv=18 me=8 fsb=2 ps=0 tb=0 train=-1.07497 test=-1.08939
+  b=118 nr=4 dv=14 me=7 fsb=2 ps=0 tb=0 train=-1.07533 test=-1.08942
+
+=== SUMMARY (Searches 16-22, baseline test=-1.08601, prev best=-1.08572) ===
+
+--- Per-pirate residual analysis (Model 1) ---
+Most mispredicted pirates by |z|:
+  OVER:  Crossblades (str=66) z=-4.62, Lucky (str=82) z=-3.38, Puffo (str=68) z=-3.23, Blackbeard (str=76) z=-2.42
+  UNDER: Orvinn (str=52) z=+3.84, Ogletree (str=79) z=+3.61, Buck (str=89) z=+2.50
+
+Key patterns found:
+  1. Strength 60-69 bucket systematically OVER-predicted (avg_delta=-0.011)
+  2. Strength 80-89 bucket systematically UNDER-predicted (avg_delta=+0.004)
+  3. Crossblades error WORSENS with more favs (nf=3: delta=-3.3pp, nf=4: -4.4pp)
+  4. Puffo error WORSENS dramatically at high nf (nf=6: delta=-8.5pp)
+  5. Strong pirates (Buck, Gooblah) over-predicted at nf=0,na=0 but under-predicted overall
+  6. This implies: favs help strong pirates MORE than model thinks, and weak pirates LESS
+
+--- Hypothesis testing results ---
+Search 16 (fav-adds-str): best test=-1.08864  WORSE  (fsb=2 best, but doesn't beat iterative)
+Search 17 (allergy order): best test=-1.08537  NEW BEST (+0.00064 vs baseline, +0.00035 vs iter fav)
+  ao=0 (before-fav): -1.08572 (same as Search 3)
+  ao=1 (after-fav):  -1.08537 with iterative fav fp=14, me=6
+  KEY FINDING: allergy damage applied AFTER fav reduction improves fit
+Search 18 (str-based fav): best test=-1.08941  WORSE
+Search 19 (nonlinear str): best test=-1.08672  WORSE (quadratic/sqrt don't help)
+Search 20 (fine grid):     best test=-1.08519  NEW BEST (+0.00082 vs baseline)
+  b=121 nr=6 fp=16 dv=20 me=6 ao=1 — iterative fav, allergy after, 6 rolls, div=20
+  Note: b=117 nr=5 fp=14 dv=17-18 me=6 ao=1 also very close at -1.08524
+  Position effect did NOT help with ao=1 model (test=-1.08675 worse)
+Search 21 (ao=1 + mul fav): best test=-1.08606  WORSE than iterative fav
+Search 22 (ao=1 + str bonus): best test=-1.08864  WORSE
+
+--- Best model so far (from Search 20) ---
+  test LL = -1.08519 (prev best was -1.08572, baseline -1.08601)
+  Improvement: +0.00082 over baseline, +0.00053 over previous best
+
+  Pseudocode:
+    wo = min(floor((221 - weight) / 2), 6)    // note: me=6, not 7!
+    upper = max(1, BASE - strength)            // BASE=121, linear
+    for (i = 0; i < nf; i++) {                 // iterative fav reduction
+        upper -= floor(upper / 16)             // fp=16
+    }
+    // ALLERGY APPLIED AFTER FAV:
+    for (i = 0; i < na; i++) {
+        upper += dice(1, wo)                   // allergy increases die AFTER fav
+    }
+    score = sum of 6 rolls of dice(1, upper)   // nr=6
+    score = floor(score / 20)                  // quantize, dv=20
+    // Lowest score wins, later position wins ties
+
+  Key structural change: allergy damage is applied to the die AFTER fav reduction,
+  not before. This means fav reduction is computed on the "clean" pre-allergy die,
+  preventing allergy-inflated dies from receiving oversized fav reductions.
+
+=== REMAINING IDEAS TO TEST ===
+  - Allergy applied as die increase (current best) vs life/strength reduction (different arithmetic)
+  - Different allergy order for the PHP code path: fav -> allergy -> position
+  - Combine ao=1 with a smaller wo_min or different me values at finer granularity
+  - Test whether nr=6 dv=20 is structurally equivalent to nr=4 dv=14 (both ~ 6/20 = 4/14-ish)
+  - Revisit PosMul hypothesis with ao=1 to see if it catches up
+
+=== Search 23: Shape-compatible structure sweep ===
+S0:baseline_bulk: best b=112 fd=15 nr=4 dv=14 me=7 p1=0 train=-1.07195 test=-1.08601 delta=-0.00000 
+S1:iter_fav_before: best b=118 fd=15 nr=5 dv=18 me=7 p1=0 train=-1.07176 test=-1.08572 delta=+0.00029 **
+S2:iter_allergy_after: best b=121 fd=16 nr=6 dv=20 me=6 p1=0 train=-1.07221 test=-1.08519 delta=+0.00082 ***
+S9:penalty_roll_bulk: best b=112 fd=15 nr=3 dv=12 me=7 p1=0 train=-1.07507 test=-1.08832 delta=-0.00231 
+S19:penalty_roll_iter: best b=116 fd=13 nr=4 dv=14 me=8 p1=0 train=-1.07395 test=-1.08692 delta=-0.00091 
+
+=== Search 23: Shape-compatible structure sweep ===
+S0:baseline_bulk: best b=112 fd=15 nr=4 dv=14 me=7 p1=0 train=-1.07195 test=-1.08601 delta=-0.00000 
+S1:iter_fav_before: best b=118 fd=15 nr=5 dv=18 me=7 p1=0 train=-1.07176 test=-1.08572 delta=+0.00029 **
+S2:iter_allergy_after: best b=121 fd=16 nr=6 dv=20 me=6 p1=0 train=-1.07221 test=-1.08519 delta=+0.00082 ***
+S9:penalty_roll_bulk: best b=112 fd=15 nr=3 dv=12 me=7 p1=0 train=-1.07507 test=-1.08832 delta=-0.00231 
+S19:penalty_roll_iter: best b=116 fd=13 nr=4 dv=14 me=8 p1=0 train=-1.07395 test=-1.08692 delta=-0.00091 
+S15:mul_allergy_bulk: best b=118 fd=16 nr=4 dv=16 me=7 p1=110 train=-1.07648 test=-1.09036 delta=-0.00435 
+S25:mul_allergy_iter: best b=121 fd=16 nr=4 dv=16 me=7 p1=110 train=-1.07706 test=-1.08950 delta=-0.00349 
+S16:flat_allergy_bulk: best b=112 fd=15 nr=4 dv=14 me=7 p1=3 train=-1.07493 test=-1.08925 delta=-0.00324 
+S26:flat_allergy_iter: best b=120 fd=15 nr=5 dv=18 me=7 p1=3 train=-1.07459 test=-1.08807 delta=-0.00206 
+S13:allergy_rounds: best b=121 fd=17 nr=4 dv=20 me=7 p1=0 train=-1.15382 test=-1.17490 delta=-0.08889 
+
+=== Search 24: PosMul variants (php_hypothesis baseline) ===
+PHP baseline: b=109 fp=93 nr=3 pa=7 me=7 tb=first ao=0 | train=-1.07328 test=-1.09098
+
+Best 15 (ao=0, allergy before fav):
+  b=116 fp=94 nr=4 pa=5 me=7 tb=0 | train=-1.07241 test=-1.08805
+  b=116 fp=94 nr=4 pa=5 me=7 tb=2 | train=-1.07295 test=-1.08831
+  b=116 fp=94 nr=4 pa=5 me=6 tb=0 | train=-1.07294 test=-1.08835
+  b=116 fp=95 nr=4 pa=5 me=7 tb=0 | train=-1.07301 test=-1.08850
+  b=116 fp=94 nr=4 pa=5 me=8 tb=0 | train=-1.07266 test=-1.08850
+  b=116 fp=94 nr=4 pa=5 me=6 tb=2 | train=-1.07347 test=-1.08859
+  b=116 fp=95 nr=4 pa=5 me=7 tb=2 | train=-1.07354 test=-1.08875
+  b=116 fp=94 nr=4 pa=5 me=8 tb=2 | train=-1.07321 test=-1.08878
+  b=116 fp=95 nr=4 pa=5 me=8 tb=0 | train=-1.07311 test=-1.08888
+  b=116 fp=94 nr=4 pa=5 me=7 tb=1 | train=-1.07383 test=-1.08891
+  b=116 fp=95 nr=4 pa=5 me=6 tb=0 | train=-1.07373 test=-1.08892
+  b=114 fp=94 nr=4 pa=5 me=7 tb=0 | train=-1.07209 test=-1.08893
+  b=116 fp=95 nr=4 pa=5 me=8 tb=2 | train=-1.07364 test=-1.08915
+  b=116 fp=95 nr=4 pa=5 me=6 tb=2 | train=-1.07425 test=-1.08916
+  b=116 fp=94 nr=4 pa=5 me=6 tb=1 | train=-1.07435 test=-1.08919
+
+Best 15 (ao=1, allergy after fav):
+  b=116 fp=94 nr=4 pa=5 me=6 tb=0 | train=-1.07206 test=-1.08732
+  b=116 fp=94 nr=4 pa=5 me=6 tb=2 | train=-1.07259 test=-1.08756
+  b=116 fp=94 nr=4 pa=5 me=5 tb=0 | train=-1.07286 test=-1.08793
+  b=116 fp=94 nr=4 pa=5 me=7 tb=0 | train=-1.07247 test=-1.08803
+  b=116 fp=94 nr=4 pa=5 me=5 tb=2 | train=-1.07338 test=-1.08815
+  b=116 fp=94 nr=4 pa=5 me=6 tb=1 | train=-1.07345 test=-1.08815
+  b=116 fp=94 nr=4 pa=5 me=7 tb=2 | train=-1.07301 test=-1.08829
+  b=111 fp=93 nr=3 pa=5 me=6 tb=0 | train=-1.07391 test=-1.08871
+  b=116 fp=94 nr=4 pa=5 me=5 tb=1 | train=-1.07426 test=-1.08873
+  b=111 fp=93 nr=3 pa=5 me=5 tb=0 | train=-1.07424 test=-1.08879
+  b=114 fp=94 nr=4 pa=5 me=6 tb=0 | train=-1.07240 test=-1.08882
+  b=116 fp=94 nr=4 pa=6 me=6 tb=1 | train=-1.07241 test=-1.08887
+  b=116 fp=94 nr=4 pa=5 me=7 tb=1 | train=-1.07387 test=-1.08888
+  b=112 fp=93 nr=3 pa=5 me=5 tb=0 | train=-1.07488 test=-1.08894
+  b=112 fp=93 nr=3 pa=5 me=6 tb=0 | train=-1.07463 test=-1.08895
+
+Summary:
+  PHP baseline (b=109 fp=93 nr=3 pa=7 me=7 tb=1): test=-1.09098
+  Best ao=0: b=116 fp=94 nr=4 pa=5 me=7 tb=0 test=-1.08805
+  Best ao=1: b=116 fp=94 nr=4 pa=5 me=6 tb=0 test=-1.08732
+
+=== Search 25: Scaled-up base to reduce floor rounding in fav ===
+Reference scale=1: b=112 fd=15 nr=4 dv=14 me=7 bulk ao=0 | train=-1.07195 test=-1.08601
+S2 ref scale=1: b=121 fd=16 nr=6 dv=20 me=6 iter ao=1 | train=-1.07221 test=-1.08519
+
+Scale=2: 7224 configs
+Best 10:
+  b=244  s=2 fd=26  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.08407 test=-1.09615 delta=-0.01014
+  b=240  s=2 fd=26  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.08368 test=-1.09618 delta=-0.01017
+  b=252  s=2 fd=26  nr=6 dv=24 me=7 fm=iter ao=1 | train=-1.08480 test=-1.09651 delta=-0.01050
+  b=232  s=2 fd=26  nr=4 dv=24 me=7 fm=iter ao=1 | train=-1.08400 test=-1.09662 delta=-0.01061
+  b=248  s=2 fd=26  nr=6 dv=24 me=7 fm=iter ao=1 | train=-1.08463 test=-1.09674 delta=-0.01073
+  b=244  s=2 fd=26  nr=5 dv=24 me=6 fm=iter ao=1 | train=-1.08484 test=-1.09676 delta=-0.01075
+  b=236  s=2 fd=26  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.08423 test=-1.09678 delta=-0.01077
+  b=240  s=2 fd=26  nr=5 dv=24 me=6 fm=iter ao=1 | train=-1.08452 test=-1.09684 delta=-0.01083
+  b=242  s=2 fd=26  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.08429 test=-1.09696 delta=-0.01095
+  b=232  s=2 fd=27  nr=4 dv=24 me=7 fm=iter ao=1 | train=-1.08445 test=-1.09698 delta=-0.01097
+
+Scale=3: 11112 configs
+Best 10:
+  b=360  s=3 fd=27  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.08953 test=-1.10103 delta=-0.01502
+  b=363  s=3 fd=27  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.08993 test=-1.10138 delta=-0.01537
+  b=348  s=3 fd=27  nr=4 dv=24 me=7 fm=iter ao=1 | train=-1.08964 test=-1.10162 delta=-0.01561
+  b=360  s=3 fd=27  nr=5 dv=24 me=6 fm=iter ao=1 | train=-1.09054 test=-1.10183 delta=-0.01582
+  b=336  s=3 fd=27  nr=4 dv=24 me=7 fm=iter ao=1 | train=-1.08923 test=-1.10186 delta=-0.01585
+  b=366  s=3 fd=27  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.09049 test=-1.10189 delta=-0.01588
+  b=363  s=3 fd=27  nr=5 dv=24 me=6 fm=iter ao=1 | train=-1.09091 test=-1.10216 delta=-0.01615
+  b=354  s=3 fd=27  nr=5 dv=24 me=7 fm=iter ao=1 | train=-1.09005 test=-1.10218 delta=-0.01617
+  b=378  s=3 fd=27  nr=6 dv=24 me=7 fm=iter ao=1 | train=-1.09111 test=-1.10221 delta=-0.01620
+  b=360  s=3 fd=27  nr=5 dv=22 me=7 fm=iter ao=1 | train=-1.09086 test=-1.10224 delta=-0.01623
+
+=== Search 26: Fav precision — removing middle floor ===
+fm=bulk_floor     ao=0: best b=124 nr=6 dv=22 me=7 fp=18 | train=-1.07228 test=-1.08598 delta=+0.00003 *
+fm=iter_floor     ao=0: best b=124 nr=6 dv=22 me=7 fp=18 | train=-1.07223 test=-1.08522 delta=+0.00079 ***
+fm=single_mul     ao=0: best b=120 nr=5 dv=18 me=7 fp=95 | train=-1.07207 test=-1.08664 delta=-0.00063 
+fm=iter_mul       ao=0: best b=114 nr=4 dv=14 me=7 fp=96 | train=-1.07298 test=-1.08556 delta=+0.00045 **
+fm=single_linear  ao=0: best b=121 nr=5 dv=20 me=7 fp=4 | train=-1.07252 test=-1.08648 delta=-0.00047 
+fm=round_mul      ao=0: best b=121 nr=5 dv=18 me=7 fp=95 | train=-1.07244 test=-1.08627 delta=-0.00026 
+fm=int_mul        ao=0: best b=120 nr=5 dv=18 me=7 fp=95 | train=-1.07205 test=-1.08664 delta=-0.00063 
+fm=bulk_floor     ao=1: best b=124 nr=6 dv=22 me=6 fp=18 | train=-1.07318 test=-1.08644 delta=-0.00043 
+fm=iter_floor     ao=1: best b=124 nr=6 dv=22 me=6 fp=17 | train=-1.07214 test=-1.08477 delta=+0.00124 ***
+fm=single_mul     ao=1: best b=116 nr=4 dv=14 me=6 fp=94 | train=-1.07234 test=-1.08606 delta=-0.00005 
+fm=iter_mul       ao=1: best b=116 nr=4 dv=14 me=6 fp=96 | train=-1.07354 test=-1.08578 delta=+0.00023 **
+fm=single_linear  ao=1: best b=120 nr=5 dv=18 me=6 fp=5 | train=-1.07198 test=-1.08617 delta=-0.00016 
+fm=round_mul      ao=1: best b=120 nr=5 dv=18 me=6 fp=94 | train=-1.07131 test=-1.08552 delta=+0.00049 **
+fm=int_mul        ao=1: best b=116 nr=4 dv=14 me=6 fp=94 | train=-1.07233 test=-1.08606 delta=-0.00005 
+
+=== Search 27: Life-based model variants ===
+Baseline (b=124 fd=17 nr=6 dv=22 me=6 ao=1): train=-1.07214 test=-1.08477
+L1 threshold: best b=124 nr=4 dv=22 me=6 th=50 ps=5 train=-1.07214 test=-1.08473 delta=+0.00004
+
+=== Search 27: Life-based model variants ===
+Baseline (b=124 fd=17 nr=6 dv=22 me=6 ao=1): train=-1.07214 test=-1.08477
+L1 threshold: best b=124 nr=4 dv=22 me=6 th=50 ps=5 train=-1.07214 test=-1.08473 delta=+0.00004
+L2 life-rounds: best bd=30 fd=15 dv=14 me=7 rd=15 train=-2.04211 test=-2.03187 delta=-0.94710
+L3 life-divisor: best bd=20 fd=17 nr=5 dv=18 me=7 sk=150 train=-1.09886 test=-1.11046 delta=-0.02570
+L4 dynamic-die: best b=124 fd=17 nr=6 dv=22 me=6 sd=50 train=-1.07169 test=-1.08485 delta=-0.00008
+L5 hybrid: best b=120 fd=15 nc=5 dv=22 me=6 dp=50 train=-1.31233 test=-1.33210 delta=-0.24733
+
+--- Search 11: Fav/allergy overlap modes ---
+Modes: 0=allergy-priority(current), 1=fav-priority, 2=neutral, 3=both
+  om=0 (allergy-prio): best b=112 nr=4 fp=15 dv=14 me=7 train=-1.07195 test=-1.08601
+  om=1 (fav-prio): best b=114 nr=4 fp=15 dv=14 me=6 train=-1.09035 test=-1.10505
+  om=2 (neutral): best b=118 nr=5 fp=16 dv=18 me=6 train=-1.07953 test=-1.09360
+  om=3 (both): best b=118 nr=5 fp=18 dv=18 me=7 train=-1.07572 test=-1.08956
+
+--- Search 12: Per-pirate strength adjustments ---
+  Ogletree -> index 4
+  Buck Cutlass -> index 18
+  Orvinn -> index 2
+  Lucky -> index 3
+  Crossblades -> index 10
+  Puffo -> index 7
+  Blackbeard -> index 17
+  Individual adj (baseline b=112 nr=4 fp=15 dv=14 me=7):
+    Ogletree: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Buck Cutlass: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Orvinn: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Lucky: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Crossblades: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Puffo: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Blackbeard: best_adj=+0, test=-1.08601 (delta=+0.00000)
+  Combined adj: test=-1.12795 (delta=-0.04194)
+  Grid search under-est trio (Ogletree, Buck, Orvinn):
+    Best: Ogletree=+0, Buck=+0, Orvinn=+0 test=-1.08601 (delta=+0.00000)
+
+--- Search 13: Flat allergy: dmg = na * wo (deterministic) ---
+Best 15:
+  b=116 nr=4 fp=16 dv=16 me=5  train=-1.07664 test=-1.08997
+  b=116 nr=4 fp=16 dv=14 me=5  train=-1.07706 test=-1.08997
+  b=118 nr=5 fp=18 dv=18 me=5  train=-1.07655 test=-1.09059
+  b=118 nr=5 fp=16 dv=18 me=5  train=-1.07585 test=-1.09060
+  b=114 nr=4 fp=15 dv=14 me=5  train=-1.07625 test=-1.09079
+  b=116 nr=4 fp=16 dv=18 me=5  train=-1.07719 test=-1.09092
+  b=114 nr=4 fp=16 dv=14 me=5  train=-1.07757 test=-1.09097
+  b=116 nr=4 fp=16 dv=12 me=5  train=-1.07848 test=-1.09098
+  b=118 nr=5 fp=16 dv=16 me=5  train=-1.07662 test=-1.09100
+  b=114 nr=4 fp=16 dv=16 me=5  train=-1.07735 test=-1.09111
+  b=114 nr=4 fp=15 dv=16 me=5  train=-1.07614 test=-1.09113
+  b=118 nr=5 fp=18 dv=16 me=5  train=-1.07744 test=-1.09120
+  b=116 nr=5 fp=16 dv=18 me=5  train=-1.07700 test=-1.09128
+  b=112 nr=4 fp=15 dv=14 me=5  train=-1.07727 test=-1.09148
+  b=114 nr=4 fp=15 dv=12 me=5  train=-1.07747 test=-1.09155
+
+--- Search 14: Allergy pct: upper += na * upper * ap / 100 ---
+Best 15:
+  b=112 nr=3 fp=15 dv=12 ap=15 train=-1.07599 test=-1.09061
+  b=118 nr=4 fp=16 dv=16 ap=10 train=-1.07693 test=-1.09084
+  b=116 nr=4 fp=16 dv=14 ap=10 train=-1.07722 test=-1.09090
+  b=118 nr=4 fp=16 dv=14 ap=10 train=-1.07749 test=-1.09093
+  b=112 nr=3 fp=15 dv=10 ap=15 train=-1.07700 test=-1.09103
+  b=116 nr=4 fp=16 dv=16 ap=10 train=-1.07695 test=-1.09113
+  b=118 nr=4 fp=18 dv=16 ap=10 train=-1.07785 test=-1.09144
+  b=112 nr=3 fp=14 dv=12 ap=15 train=-1.07640 test=-1.09160
+  b=118 nr=4 fp=18 dv=14 ap=10 train=-1.07853 test=-1.09164
+  b=118 nr=4 fp=16 dv=18 ap=10 train=-1.07731 test=-1.09169
+  b=116 nr=4 fp=16 dv=12 ap=10 train=-1.07855 test=-1.09174
+  b=112 nr=3 fp=15 dv=14 ap=15 train=-1.07668 test=-1.09185
+  b=112 nr=3 fp=14 dv=10 ap=15 train=-1.07732 test=-1.09196
+  b=118 nr=4 fp=16 dv=12 ap=10 train=-1.07902 test=-1.09198
+  b=114 nr=3 fp=15 dv=12 ap=15 train=-1.07757 test=-1.09203
+
+--- Search 15: Fav die+wt: upper -= nf * floor((die+weight)/K) ---
+Best 15:
+  b=120 nr=5 fp=80 dv=18 me=7 train=-1.07433 test=-1.08934
+  b=118 nr=4 fp=80 dv=16 me=7 train=-1.07521 test=-1.08941
+  b=120 nr=5 fp=80 dv=18 me=6 train=-1.07482 test=-1.08969
+  b=118 nr=4 fp=80 dv=16 me=6 train=-1.07575 test=-1.08983
+  b=118 nr=4 fp=80 dv=18 me=7 train=-1.07531 test=-1.08985
+  b=118 nr=4 fp=80 dv=14 me=7 train=-1.07602 test=-1.08987
+  b=120 nr=4 fp=80 dv=16 me=7 train=-1.07589 test=-1.09000
+  b=118 nr=4 fp=80 dv=16 me=8 train=-1.07573 test=-1.09008
+  b=120 nr=5 fp=80 dv=16 me=7 train=-1.07544 test=-1.09015
+  b=118 nr=4 fp=80 dv=14 me=6 train=-1.07648 test=-1.09019
+  b=120 nr=4 fp=80 dv=16 me=6 train=-1.07618 test=-1.09020
+  b=120 nr=5 fp=80 dv=18 me=8 train=-1.07498 test=-1.09021
+  b=120 nr=4 fp=80 dv=18 me=7 train=-1.07579 test=-1.09025
+  b=118 nr=4 fp=80 dv=18 me=6 train=-1.07595 test=-1.09039
+  b=118 nr=4 fp=80 dv=18 me=8 train=-1.07574 test=-1.09042
+
+--- Search 16: Favs add to strength: eff_str = str + nf*bonus, upper = base - eff_str ---
+Best 15:
+  b=125 nr=5 dv=20 me=7 fsb=2 ao=0 train=-1.07478 test=-1.08864
+  b=125 nr=5 dv=20 me=7 fsb=2 ao=1 train=-1.07478 test=-1.08864
+  b=118 nr=4 dv=16 me=7 fsb=2 ao=0 train=-1.07446 test=-1.08894
+  b=118 nr=4 dv=16 me=7 fsb=2 ao=1 train=-1.07446 test=-1.08894
+  b=125 nr=5 dv=20 me=8 fsb=2 ao=0 train=-1.07497 test=-1.08897
+  b=125 nr=5 dv=20 me=8 fsb=2 ao=1 train=-1.07497 test=-1.08897
+  b=125 nr=5 dv=18 me=7 fsb=2 ao=0 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=18 me=7 fsb=2 ao=1 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=20 me=6 fsb=2 ao=0 train=-1.07542 test=-1.08918
+  b=125 nr=5 dv=20 me=6 fsb=2 ao=1 train=-1.07542 test=-1.08918
+  b=118 nr=4 dv=16 me=8 fsb=2 ao=0 train=-1.07472 test=-1.08934
+  b=118 nr=4 dv=16 me=8 fsb=2 ao=1 train=-1.07472 test=-1.08934
+  b=120 nr=4 dv=16 me=7 fsb=2 ao=0 train=-1.07541 test=-1.08935
+  b=120 nr=4 dv=16 me=7 fsb=2 ao=1 train=-1.07541 test=-1.08935
+  b=118 nr=4 dv=18 me=7 fsb=2 ao=0 train=-1.07449 test=-1.08936
+Best per fsb:
+  fsb=1 : b=120 nr=5 dv=20 me=7 ao=0 test=-1.09812
+  fsb=2 : b=125 nr=5 dv=20 me=7 ao=0 test=-1.08864
+  fsb=3 : b=125 nr=5 dv=20 me=7 ao=0 test=-1.09012
+  fsb=4 : b=130 nr=5 dv=20 me=7 ao=0 test=-1.10054
+  fsb=5 : b=130 nr=4 dv=18 me=8 ao=0 test=-1.11808
+  fsb=6 : b=130 nr=3 dv=14 me=8 ao=0 test=-1.13912
+  fsb=7 : b=130 nr=3 dv=16 me=8 ao=0 test=-1.17612
+  fsb=8 : b=130 nr=3 dv=16 me=8 ao=0 test=-1.24177
+  fsb=10: b=130 nr=3 dv=16 me=8 ao=1 test=-1.52911
+
+--- Search 17: Allergy order swap (0=before-fav, 1=after-fav) ---
+Best 15:
+  b=118 nr=5 fm=iter fp=14 dv=18 me=6 ao=1 train=-1.07183 test=-1.08537
+  b=120 nr=5 fm=iter fp=15 dv=18 me=6 ao=1 train=-1.07235 test=-1.08540
+  b=118 nr=5 fm=iter fp=14 dv=16 me=6 ao=1 train=-1.07239 test=-1.08556
+  b=118 nr=5 fm=iter fp=15 dv=18 me=6 ao=1 train=-1.07198 test=-1.08566
+  b=118 nr=5 fm=iter fp=15 dv=18 me=7 ao=0 train=-1.07176 test=-1.08572
+  b=120 nr=5 fm=iter fp=15 dv=16 me=6 ao=1 train=-1.07311 test=-1.08579
+  b=120 nr=5 fm=iter fp=16 dv=18 me=7 ao=0 train=-1.07241 test=-1.08581
+  b=118 nr=5 fm=iter fp=15 dv=16 me=6 ao=1 train=-1.07261 test=-1.08591
+  b=118 nr=5 fm=iter fp=15 dv=16 me=7 ao=0 train=-1.07239 test=-1.08598
+  b=118 nr=5 fm=iter fp=16 dv=18 me=7 ao=0 train=-1.07207 test=-1.08599
+  b=112 nr=4 fm=bulk fp=15 dv=14 me=7 ao=0 train=-1.07195 test=-1.08601
+  b=118 nr=5 fm=iter fp=15 dv=18 me=8 ao=0 train=-1.07185 test=-1.08602
+  b=118 nr=5 fm=bulk fp=18 dv=18 me=7 ao=0 train=-1.07271 test=-1.08604
+  b=116 nr=4 fm=mul  fp=94 dv=14 me=6 ao=1 train=-1.07234 test=-1.08606
+  b=120 nr=5 fm=iter fp=15 dv=18 me=7 ao=1 train=-1.07282 test=-1.08608
+Best ao=0: b=118 nr=5 fm=iter fp=15 dv=18 me=7 test=-1.08572
+Best ao=1: b=118 nr=5 fm=iter fp=14 dv=18 me=6 test=-1.08537
+
+--- Search 18: Fav from strength: upper -= nf * floor(str/K) ---
+Best 15:
+  b=125 nr=4 fk=25 dv=18 me=7 ao=0 train=-1.07664 test=-1.08941
+  b=125 nr=4 fk=25 dv=18 me=6 ao=0 train=-1.07719 test=-1.08973
+  b=125 nr=4 fk=25 dv=16 me=7 ao=0 train=-1.07741 test=-1.08984
+  b=130 nr=5 fk=25 dv=18 me=7 ao=0 train=-1.07771 test=-1.08985
+  b=125 nr=4 fk=25 dv=18 me=8 ao=0 train=-1.07691 test=-1.08990
+  b=125 nr=4 fk=25 dv=16 me=6 ao=0 train=-1.07789 test=-1.09008
+  b=130 nr=5 fk=25 dv=18 me=6 ao=0 train=-1.07830 test=-1.09018
+  b=130 nr=5 fk=25 dv=18 me=8 ao=0 train=-1.07798 test=-1.09041
+  b=125 nr=4 fk=25 dv=16 me=8 ao=0 train=-1.07774 test=-1.09042
+  b=125 nr=4 fk=25 dv=14 me=7 ao=0 train=-1.07887 test=-1.09097
+  b=125 nr=4 fk=25 dv=18 me=8 ao=1 train=-1.07772 test=-1.09104
+  b=125 nr=4 fk=25 dv=18 me=7 ao=1 train=-1.07786 test=-1.09108
+  b=125 nr=4 fk=25 dv=14 me=6 ao=0 train=-1.07930 test=-1.09115
+  b=118 nr=3 fk=25 dv=14 me=7 ao=0 train=-1.07798 test=-1.09115
+  b=130 nr=5 fk=25 dv=16 me=7 ao=0 train=-1.07931 test=-1.09118
+
+--- Search 19: Nonlinear strength (3=quadratic, 4=sqrt) ---
+Best 15:
+  b=80  nr=5 fp=18 dv=18 me=7 sm=quad sk=150 train=-1.07266 test=-1.08672
+  b=80  nr=5 fp=18 dv=18 me=6 sm=quad sk=150 train=-1.07278 test=-1.08676
+  b=112 nr=5 fp=18 dv=12 me=7 sm=sqrt sk=10  train=-1.07500 test=-1.08707
+  b=80  nr=5 fp=18 dv=16 me=6 sm=quad sk=150 train=-1.07349 test=-1.08713
+  b=80  nr=5 fp=18 dv=16 me=7 sm=quad sk=150 train=-1.07343 test=-1.08717
+  b=112 nr=5 fp=18 dv=12 me=8 sm=sqrt sk=10  train=-1.07513 test=-1.08735
+  b=80  nr=5 fp=18 dv=18 me=8 sm=quad sk=150 train=-1.07328 test=-1.08755
+  b=112 nr=5 fp=18 dv=12 me=6 sm=sqrt sk=10  train=-1.07583 test=-1.08790
+  b=80  nr=5 fp=18 dv=16 me=8 sm=quad sk=150 train=-1.07410 test=-1.08807
+  b=80  nr=5 fp=18 dv=14 me=6 sm=quad sk=150 train=-1.07494 test=-1.08825
+  b=80  nr=5 fp=18 dv=14 me=7 sm=quad sk=150 train=-1.07492 test=-1.08835
+  b=112 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=10  train=-1.07368 test=-1.08839
+  b=110 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=10  train=-1.07546 test=-1.08842
+  b=112 nr=5 fp=16 dv=12 me=8 sm=sqrt sk=10  train=-1.07350 test=-1.08847
+  b=100 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=9   train=-1.07635 test=-1.08863
+Best quadratic: b=80 nr=5 fp=18 dv=18 me=7 sk=150 test=-1.08672
+Best sqrt: b=112 nr=5 fp=18 dv=12 me=7 sk=10 test=-1.08707
+
+--- Search 28: Legacy regime (lwm=1 for old PHP rand(1,0)=1) ---
+Best 15:
+  b=124 nr=6 fp=17 dv=22 me=6 ao=1 lwm=0 train=-1.07214 test=-1.08477
+  b=124 nr=6 fp=17 dv=24 me=6 ao=1 lwm=0 train=-1.07201 test=-1.08495
+  b=124 nr=6 fp=17 dv=20 me=6 ao=1 lwm=0 train=-1.07273 test=-1.08504
+  b=124 nr=6 fp=17 dv=22 me=6 ao=1 lwm=1 train=-1.07249 test=-1.08510
+  b=124 nr=6 fp=17 dv=22 me=7 ao=1 lwm=0 train=-1.07233 test=-1.08515
+  b=124 nr=6 fp=18 dv=22 me=7 ao=0 lwm=0 train=-1.07223 test=-1.08522
+  b=124 nr=6 fp=17 dv=24 me=7 ao=1 lwm=0 train=-1.07213 test=-1.08525
+  b=124 nr=6 fp=17 dv=24 me=6 ao=1 lwm=1 train=-1.07236 test=-1.08528
+  b=124 nr=6 fp=18 dv=24 me=7 ao=0 lwm=0 train=-1.07206 test=-1.08535
+  b=124 nr=6 fp=17 dv=20 me=6 ao=1 lwm=1 train=-1.07309 test=-1.08539
+  b=120 nr=5 fp=15 dv=18 me=6 ao=1 lwm=0 train=-1.07235 test=-1.08540
+  b=124 nr=6 fp=17 dv=22 me=7 ao=1 lwm=1 train=-1.07261 test=-1.08542
+  b=122 nr=6 fp=16 dv=22 me=6 ao=1 lwm=0 train=-1.07180 test=-1.08550
+  b=124 nr=6 fp=17 dv=20 me=7 ao=1 lwm=0 train=-1.07297 test=-1.08550
+  b=124 nr=6 fp=17 dv=24 me=7 ao=1 lwm=1 train=-1.07240 test=-1.08551
+Best lwm=0: b=124 nr=6 fp=17 dv=22 me=6 ao=1 test=-1.08477
+Best lwm=1: b=124 nr=6 fp=17 dv=22 me=6 ao=1 test=-1.08510
+
+--- Search 11: Fav/allergy overlap modes ---
+Modes: 0=allergy-priority(current), 1=fav-priority, 2=neutral, 3=both
+  om=0 (allergy-prio): best b=112 nr=4 fp=15 dv=14 me=7 train=-1.07195 test=-1.08601
+  om=1 (fav-prio): best b=114 nr=4 fp=15 dv=14 me=6 train=-1.09035 test=-1.10505
+  om=2 (neutral): best b=118 nr=5 fp=16 dv=18 me=6 train=-1.07953 test=-1.09360
+  om=3 (both): best b=118 nr=5 fp=18 dv=18 me=7 train=-1.07572 test=-1.08956
+
+--- Search 12: Per-pirate strength adjustments ---
+  Ogletree -> index 4
+  Buck Cutlass -> index 18
+  Orvinn -> index 2
+  Lucky -> index 3
+  Crossblades -> index 10
+  Puffo -> index 7
+  Blackbeard -> index 17
+  Individual adj (baseline b=112 nr=4 fp=15 dv=14 me=7):
+    Ogletree: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Buck Cutlass: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Orvinn: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Lucky: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Crossblades: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Puffo: best_adj=+0, test=-1.08601 (delta=+0.00000)
+    Blackbeard: best_adj=+0, test=-1.08601 (delta=+0.00000)
+  Combined adj: test=-1.12795 (delta=-0.04194)
+  Grid search under-est trio (Ogletree, Buck, Orvinn):
+    Best: Ogletree=+0, Buck=+0, Orvinn=+0 test=-1.08601 (delta=+0.00000)
+
+--- Search 13: Flat allergy: dmg = na * wo (deterministic) ---
+Best 15:
+  b=116 nr=4 fp=16 dv=16 me=5  train=-1.07664 test=-1.08997
+  b=116 nr=4 fp=16 dv=14 me=5  train=-1.07706 test=-1.08997
+  b=118 nr=5 fp=18 dv=18 me=5  train=-1.07655 test=-1.09059
+  b=118 nr=5 fp=16 dv=18 me=5  train=-1.07585 test=-1.09060
+  b=114 nr=4 fp=15 dv=14 me=5  train=-1.07625 test=-1.09079
+  b=116 nr=4 fp=16 dv=18 me=5  train=-1.07719 test=-1.09092
+  b=114 nr=4 fp=16 dv=14 me=5  train=-1.07757 test=-1.09097
+  b=116 nr=4 fp=16 dv=12 me=5  train=-1.07848 test=-1.09098
+  b=118 nr=5 fp=16 dv=16 me=5  train=-1.07662 test=-1.09100
+  b=114 nr=4 fp=16 dv=16 me=5  train=-1.07735 test=-1.09111
+  b=114 nr=4 fp=15 dv=16 me=5  train=-1.07614 test=-1.09113
+  b=118 nr=5 fp=18 dv=16 me=5  train=-1.07744 test=-1.09120
+  b=116 nr=5 fp=16 dv=18 me=5  train=-1.07700 test=-1.09128
+  b=112 nr=4 fp=15 dv=14 me=5  train=-1.07727 test=-1.09148
+  b=114 nr=4 fp=15 dv=12 me=5  train=-1.07747 test=-1.09155
+
+--- Search 14: Allergy pct: upper += na * upper * ap / 100 ---
+Best 15:
+  b=112 nr=3 fp=15 dv=12 ap=15 train=-1.07599 test=-1.09061
+  b=118 nr=4 fp=16 dv=16 ap=10 train=-1.07693 test=-1.09084
+  b=116 nr=4 fp=16 dv=14 ap=10 train=-1.07722 test=-1.09090
+  b=118 nr=4 fp=16 dv=14 ap=10 train=-1.07749 test=-1.09093
+  b=112 nr=3 fp=15 dv=10 ap=15 train=-1.07700 test=-1.09103
+  b=116 nr=4 fp=16 dv=16 ap=10 train=-1.07695 test=-1.09113
+  b=118 nr=4 fp=18 dv=16 ap=10 train=-1.07785 test=-1.09144
+  b=112 nr=3 fp=14 dv=12 ap=15 train=-1.07640 test=-1.09160
+  b=118 nr=4 fp=18 dv=14 ap=10 train=-1.07853 test=-1.09164
+  b=118 nr=4 fp=16 dv=18 ap=10 train=-1.07731 test=-1.09169
+  b=116 nr=4 fp=16 dv=12 ap=10 train=-1.07855 test=-1.09174
+  b=112 nr=3 fp=15 dv=14 ap=15 train=-1.07668 test=-1.09185
+  b=112 nr=3 fp=14 dv=10 ap=15 train=-1.07732 test=-1.09196
+  b=118 nr=4 fp=16 dv=12 ap=10 train=-1.07902 test=-1.09198
+  b=114 nr=3 fp=15 dv=12 ap=15 train=-1.07757 test=-1.09203
+
+--- Search 15: Fav die+wt: upper -= nf * floor((die+weight)/K) ---
+Best 15:
+  b=120 nr=5 fp=80 dv=18 me=7 train=-1.07433 test=-1.08934
+  b=118 nr=4 fp=80 dv=16 me=7 train=-1.07521 test=-1.08941
+  b=120 nr=5 fp=80 dv=18 me=6 train=-1.07482 test=-1.08969
+  b=118 nr=4 fp=80 dv=16 me=6 train=-1.07575 test=-1.08983
+  b=118 nr=4 fp=80 dv=18 me=7 train=-1.07531 test=-1.08985
+  b=118 nr=4 fp=80 dv=14 me=7 train=-1.07602 test=-1.08987
+  b=120 nr=4 fp=80 dv=16 me=7 train=-1.07589 test=-1.09000
+  b=118 nr=4 fp=80 dv=16 me=8 train=-1.07573 test=-1.09008
+  b=120 nr=5 fp=80 dv=16 me=7 train=-1.07544 test=-1.09015
+  b=118 nr=4 fp=80 dv=14 me=6 train=-1.07648 test=-1.09019
+  b=120 nr=4 fp=80 dv=16 me=6 train=-1.07618 test=-1.09020
+  b=120 nr=5 fp=80 dv=18 me=8 train=-1.07498 test=-1.09021
+  b=120 nr=4 fp=80 dv=18 me=7 train=-1.07579 test=-1.09025
+  b=118 nr=4 fp=80 dv=18 me=6 train=-1.07595 test=-1.09039
+  b=118 nr=4 fp=80 dv=18 me=8 train=-1.07574 test=-1.09042
+
+--- Search 16: Favs add to strength: eff_str = str + nf*bonus, upper = base - eff_str ---
+Best 15:
+  b=125 nr=5 dv=20 me=7 fsb=2 ao=0 train=-1.07478 test=-1.08864
+  b=125 nr=5 dv=20 me=7 fsb=2 ao=1 train=-1.07478 test=-1.08864
+  b=118 nr=4 dv=16 me=7 fsb=2 ao=0 train=-1.07446 test=-1.08894
+  b=118 nr=4 dv=16 me=7 fsb=2 ao=1 train=-1.07446 test=-1.08894
+  b=125 nr=5 dv=20 me=8 fsb=2 ao=0 train=-1.07497 test=-1.08897
+  b=125 nr=5 dv=20 me=8 fsb=2 ao=1 train=-1.07497 test=-1.08897
+  b=125 nr=5 dv=18 me=7 fsb=2 ao=0 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=18 me=7 fsb=2 ao=1 train=-1.07559 test=-1.08913
+  b=125 nr=5 dv=20 me=6 fsb=2 ao=0 train=-1.07542 test=-1.08918
+  b=125 nr=5 dv=20 me=6 fsb=2 ao=1 train=-1.07542 test=-1.08918
+  b=118 nr=4 dv=16 me=8 fsb=2 ao=0 train=-1.07472 test=-1.08934
+  b=118 nr=4 dv=16 me=8 fsb=2 ao=1 train=-1.07472 test=-1.08934
+  b=120 nr=4 dv=16 me=7 fsb=2 ao=0 train=-1.07541 test=-1.08935
+  b=120 nr=4 dv=16 me=7 fsb=2 ao=1 train=-1.07541 test=-1.08935
+  b=118 nr=4 dv=18 me=7 fsb=2 ao=0 train=-1.07449 test=-1.08936
+Best per fsb:
+  fsb=1 : b=120 nr=5 dv=20 me=7 ao=0 test=-1.09812
+  fsb=2 : b=125 nr=5 dv=20 me=7 ao=0 test=-1.08864
+  fsb=3 : b=125 nr=5 dv=20 me=7 ao=0 test=-1.09012
+  fsb=4 : b=130 nr=5 dv=20 me=7 ao=0 test=-1.10054
+  fsb=5 : b=130 nr=4 dv=18 me=8 ao=0 test=-1.11808
+  fsb=6 : b=130 nr=3 dv=14 me=8 ao=0 test=-1.13912
+  fsb=7 : b=130 nr=3 dv=16 me=8 ao=0 test=-1.17612
+  fsb=8 : b=130 nr=3 dv=16 me=8 ao=0 test=-1.24177
+  fsb=10: b=130 nr=3 dv=16 me=8 ao=1 test=-1.52911
+
+--- Search 17: Allergy order swap (0=before-fav, 1=after-fav) ---
+Best 15:
+  b=118 nr=5 fm=iter fp=14 dv=18 me=6 ao=1 train=-1.07183 test=-1.08537
+  b=120 nr=5 fm=iter fp=15 dv=18 me=6 ao=1 train=-1.07235 test=-1.08540
+  b=118 nr=5 fm=iter fp=14 dv=16 me=6 ao=1 train=-1.07239 test=-1.08556
+  b=118 nr=5 fm=iter fp=15 dv=18 me=6 ao=1 train=-1.07198 test=-1.08566
+  b=118 nr=5 fm=iter fp=15 dv=18 me=7 ao=0 train=-1.07176 test=-1.08572
+  b=120 nr=5 fm=iter fp=15 dv=16 me=6 ao=1 train=-1.07311 test=-1.08579
+  b=120 nr=5 fm=iter fp=16 dv=18 me=7 ao=0 train=-1.07241 test=-1.08581
+  b=118 nr=5 fm=iter fp=15 dv=16 me=6 ao=1 train=-1.07261 test=-1.08591
+  b=118 nr=5 fm=iter fp=15 dv=16 me=7 ao=0 train=-1.07239 test=-1.08598
+  b=118 nr=5 fm=iter fp=16 dv=18 me=7 ao=0 train=-1.07207 test=-1.08599
+  b=112 nr=4 fm=bulk fp=15 dv=14 me=7 ao=0 train=-1.07195 test=-1.08601
+  b=118 nr=5 fm=iter fp=15 dv=18 me=8 ao=0 train=-1.07185 test=-1.08602
+  b=118 nr=5 fm=bulk fp=18 dv=18 me=7 ao=0 train=-1.07271 test=-1.08604
+  b=116 nr=4 fm=mul  fp=94 dv=14 me=6 ao=1 train=-1.07234 test=-1.08606
+  b=120 nr=5 fm=iter fp=15 dv=18 me=7 ao=1 train=-1.07282 test=-1.08608
+Best ao=0: b=118 nr=5 fm=iter fp=15 dv=18 me=7 test=-1.08572
+Best ao=1: b=118 nr=5 fm=iter fp=14 dv=18 me=6 test=-1.08537
+
+--- Search 18: Fav from strength: upper -= nf * floor(str/K) ---
+Best 15:
+  b=125 nr=4 fk=25 dv=18 me=7 ao=0 train=-1.07664 test=-1.08941
+  b=125 nr=4 fk=25 dv=18 me=6 ao=0 train=-1.07719 test=-1.08973
+  b=125 nr=4 fk=25 dv=16 me=7 ao=0 train=-1.07741 test=-1.08984
+  b=130 nr=5 fk=25 dv=18 me=7 ao=0 train=-1.07771 test=-1.08985
+  b=125 nr=4 fk=25 dv=18 me=8 ao=0 train=-1.07691 test=-1.08990
+  b=125 nr=4 fk=25 dv=16 me=6 ao=0 train=-1.07789 test=-1.09008
+  b=130 nr=5 fk=25 dv=18 me=6 ao=0 train=-1.07830 test=-1.09018
+  b=130 nr=5 fk=25 dv=18 me=8 ao=0 train=-1.07798 test=-1.09041
+  b=125 nr=4 fk=25 dv=16 me=8 ao=0 train=-1.07774 test=-1.09042
+  b=125 nr=4 fk=25 dv=14 me=7 ao=0 train=-1.07887 test=-1.09097
+  b=125 nr=4 fk=25 dv=18 me=8 ao=1 train=-1.07772 test=-1.09104
+  b=125 nr=4 fk=25 dv=18 me=7 ao=1 train=-1.07786 test=-1.09108
+  b=125 nr=4 fk=25 dv=14 me=6 ao=0 train=-1.07930 test=-1.09115
+  b=118 nr=3 fk=25 dv=14 me=7 ao=0 train=-1.07798 test=-1.09115
+  b=130 nr=5 fk=25 dv=16 me=7 ao=0 train=-1.07931 test=-1.09118
+
+--- Search 19: Nonlinear strength (3=quadratic, 4=sqrt) ---
+Best 15:
+  b=80  nr=5 fp=18 dv=18 me=7 sm=quad sk=150 train=-1.07266 test=-1.08672
+  b=80  nr=5 fp=18 dv=18 me=6 sm=quad sk=150 train=-1.07278 test=-1.08676
+  b=112 nr=5 fp=18 dv=12 me=7 sm=sqrt sk=10  train=-1.07500 test=-1.08707
+  b=80  nr=5 fp=18 dv=16 me=6 sm=quad sk=150 train=-1.07349 test=-1.08713
+  b=80  nr=5 fp=18 dv=16 me=7 sm=quad sk=150 train=-1.07343 test=-1.08717
+  b=112 nr=5 fp=18 dv=12 me=8 sm=sqrt sk=10  train=-1.07513 test=-1.08735
+  b=80  nr=5 fp=18 dv=18 me=8 sm=quad sk=150 train=-1.07328 test=-1.08755
+  b=112 nr=5 fp=18 dv=12 me=6 sm=sqrt sk=10  train=-1.07583 test=-1.08790
+  b=80  nr=5 fp=18 dv=16 me=8 sm=quad sk=150 train=-1.07410 test=-1.08807
+  b=80  nr=5 fp=18 dv=14 me=6 sm=quad sk=150 train=-1.07494 test=-1.08825
+  b=80  nr=5 fp=18 dv=14 me=7 sm=quad sk=150 train=-1.07492 test=-1.08835
+  b=112 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=10  train=-1.07368 test=-1.08839
+  b=110 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=10  train=-1.07546 test=-1.08842
+  b=112 nr=5 fp=16 dv=12 me=8 sm=sqrt sk=10  train=-1.07350 test=-1.08847
+  b=100 nr=5 fp=16 dv=12 me=7 sm=sqrt sk=9   train=-1.07635 test=-1.08863
+Best quadratic: b=80 nr=5 fp=18 dv=18 me=7 sk=150 test=-1.08672
+Best sqrt: b=112 nr=5 fp=18 dv=12 me=7 sk=10 test=-1.08707
+
+--- Search 28: Legacy regime (lwm: 0=off, 1=returns 1, 2=random 0|1) ---
+Best 15:
+  b=124 nr=6 fp=17 dv=22 me=6 ao=1 lwm=0 train=-1.07214 test=-1.08477
+  b=124 nr=6 fp=17 dv=22 me=6 ao=1 lwm=2 train=-1.07229 test=-1.08491
+  b=124 nr=6 fp=17 dv=24 me=6 ao=1 lwm=0 train=-1.07201 test=-1.08495
+  b=124 nr=6 fp=17 dv=20 me=6 ao=1 lwm=0 train=-1.07273 test=-1.08504
+  b=124 nr=6 fp=17 dv=24 me=6 ao=1 lwm=2 train=-1.07216 test=-1.08509
+  b=124 nr=6 fp=17 dv=22 me=6 ao=1 lwm=1 train=-1.07249 test=-1.08510
+  b=124 nr=6 fp=17 dv=22 me=7 ao=1 lwm=0 train=-1.07233 test=-1.08515
+  b=124 nr=6 fp=17 dv=20 me=6 ao=1 lwm=2 train=-1.07288 test=-1.08518
+  b=124 nr=6 fp=18 dv=22 me=7 ao=0 lwm=0 train=-1.07223 test=-1.08522
+  b=124 nr=6 fp=17 dv=24 me=7 ao=1 lwm=0 train=-1.07213 test=-1.08525
+  b=124 nr=6 fp=17 dv=22 me=7 ao=1 lwm=2 train=-1.07244 test=-1.08526
+  b=124 nr=6 fp=17 dv=24 me=6 ao=1 lwm=1 train=-1.07236 test=-1.08528
+  b=124 nr=6 fp=18 dv=24 me=7 ao=0 lwm=0 train=-1.07206 test=-1.08535
+  b=124 nr=6 fp=17 dv=24 me=7 ao=1 lwm=2 train=-1.07224 test=-1.08535
+  b=124 nr=6 fp=18 dv=22 me=7 ao=0 lwm=2 train=-1.07240 test=-1.08539
+Best lwm=0 (off): b=124 nr=6 fp=17 dv=22 me=6 ao=1 test=-1.08477
+Best lwm=1 (always-1): b=124 nr=6 fp=17 dv=22 me=6 ao=1 test=-1.08510
+Best lwm=2 (random-0|1): b=124 nr=6 fp=17 dv=22 me=6 ao=1 test=-1.08491
+
+--- Search 11: Fav/allergy overlap modes ---
+Modes: 0=allergy-priority(current), 1=fav-priority, 2=neutral, 3=both
+  om=0 (allergy-prio): best b=112 nr=4 fp=15 dv=14 me=7 train=-1.07195 test=-1.08601
+  om=1 (fav-prio): best b=114 nr=4 fp=15 dv=14 me=6 train=-1.09035 test=-1.10505
+  om=2 (neutral): best b=118 nr=5 fp=16 dv=18 me=6 train=-1.07953 test=-1.09360

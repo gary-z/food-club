@@ -122,7 +122,18 @@
       "Bash(grep -oE '[a-zA-Z_$]+=[{][1-9]:\"[A-Z][^}]+[}]' \"C:/Users/gary_/Documents/food-club/index.js\" | grep -v \"Scurvy\" | head -10)",
       "Bash(grep -oE '.{0,20}Shipwreck.{0,100}' \"C:/Users/gary_/Documents/food-club/index.js\" | head -3)",
       "Bash(cd C:/Users/gary_/Documents/food-club && rm -rf 9808-html.json index.js 9808-html_files/)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(./target/release/backtest.exe 2>&1)",
+      "Bash(find /c/Users/gary_/Documents/food-club/sim/target -name \"backtest*\" -type f 2>/dev/null | head -5)",
+      "Bash(./target/x86_64-pc-windows-gnu/release/backtest.exe 2>&1)",
+      "Bash(cd C:/Users/gary_/Documents/food-club/sim && ./target/x86_64-pc-windows-gnu/release/backtest.exe 2>&1)",
+      "Bash(cd C:/Users/gary_/Documents/food-club/sim && RUSTUP_TOOLCHAIN=stable-x86_64-pc-windows-gnu cargo build --release --bin food_unified 2>&1 && ./target/x86_64-pc-windows-gnu/release/food_unified.exe 2>&1)",
+      "Bash(cd C:/Users/gary_/Documents/food-club/sim && ./target/x86_64-pc-windows-gnu/release/food_unified.exe 2>&1)",
+      "Bash(cd:*)",
+      "Bash(./target/x86_64-pc-windows-gnu/release/food_unified.exe 2>&1)",
+      "Bash(RUSTUP_TOOLCHAIN=stable-x86_64-pc-windows-gnu cargo build --release 2>&1 | tail -3 && ./target/x86_64-pc-windows-gnu/release/food_unified.exe 2>&1)",
+      "Bash(tasklist:*)",
+      "Bash(RUSTUP_TOOLCHAIN=stable-x86_64-pc-windows-gnu cargo build --release 2>&1 | grep -E \"error|Finished\" && ./target/x86_64-pc-windows-gnu/release/food_unified.exe 2>&1)"
     ]
   }
 }

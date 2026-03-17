@@ -13,9 +13,48 @@
    Formula: `weight_offset = min(floor((221-w)/2), 7)`, rolled per allergy.
    Reproduce: compare allergy WR penalty for heavy vs light pirates.
 
-4. **Orvinn's allergy immunity is inconclusive.** His wo=0 (weight=221) means
-   allergies deal 0 damage, but his low str=52 makes isolating allergy effects
-   impossible — too few wins at any condition.
+4. **Orvinn is NOT immune to allergies (p=0.002).** Our model predicts wo=0
+   (weight=221 → floor((221-221)/2)=0), meaning zero allergy damage. But
+   regressing excess win rate (actual - model prediction) on na shows a
+   significant negative slope: b=-0.018, t=-3.09, p=0.002. Each allergy
+   course costs Orvinn ~1.5-1.8pp of win rate that the wo=0 model misses.
+   This survives controlling for: opponent total nf (p=0.002), own nf
+   (p=0.0008), and opponent fav overlap with Orvinn's allergy courses
+   (p=0.002). The opponent-fav confound (Orvinn's allergy courses boosting
+   opponents) is real (r=0.66 between Orvinn na and opponent fav overlap)
+   but the model already accounts for opponent nf, so it doesn't explain
+   the residual. However, forcing wo=7 on Orvinn makes the fit dramatically
+   worse (LL drops by 0.35/arena), so the true allergy effect is small,
+   somewhere between wo=0 and wo=7.
+
+4b. **The allergy formula over-penalizes Gooblah (p=0.00005).** Gooblah
+    (wo=7, str=93) shows a significant POSITIVE slope of excess WR on na:
+    b=+0.029, t=4.07, p=0.00005. The model predicts allergies hurt him more
+    than they actually do. This survives controlling for opponent nf and own
+    nf. Combined with finding 4, this suggests the formula
+    `wo = min(floor((221-wt)/2), 7)` may be wrong — too low for Orvinn
+    (wt=221) and too high for Gooblah (wt=199).
+    Reproduce: run orvinn_allergy_test analysis — Gooblah section.
+
+4c. **Orvinn's allergy effect disappears around round 8616 (Dec 2022).**
+    Sliding window analysis (1000-day windows, step=100) shows the na slope is
+    significantly negative in early windows (days 0-400: slope=-0.025, p=0.012)
+    and becomes flat/positive after day ~3700 (slope=+0.005, p=0.64). Breakpoint
+    search with refinement finds the sharpest split at day 4450 in the dataset,
+    which corresponds to round 8616 (2022-12-08):
+      Before (n=4450): slope=-0.018, t=-3.69, p=0.0002
+      After  (n=1193): slope=+0.004, t=+0.44, p=0.66
+    WR by na before: 14.2%→11.0%→9.9%→5.7%→0.0% (clear gradient).
+    WR by na after:  11.1%→10.6%→11.7%→9.4%→5.6% (flat).
+    Overall WR is unchanged (10.83% vs 10.81%, p=0.99) — the effect is too small
+    (~0.3pp expected from dice(1,0)=1) to detect in raw WR, only visible in the
+    na-gradient pattern. Consistent with a PHP upgrade changing `rand(1,0)` from
+    returning 1 (old PHP: min>max returns min) to returning 0 (modern PHP: min>max
+    returns false/0). This may explain why test LL > train LL: post-change behavior
+    (wo truly =0) matches our wo=0 model better than pre-change (wo effectively =1).
+    Dataset spans rounds 4166 (2010-10-01) to 9808 (2026-03-13), 5643 days total.
+    Reproduce: run orvinn_temporal_test analysis — sliding window slopes,
+    breakpoint search, WR-by-na stratification.
 
 5. **Weight has no effect beyond allergy damage.** Same-strength pirates
    (str=81: Franchisco w=165, Federismo w=166, Tailhook w=207) at na=0 show
@@ -97,22 +136,219 @@
 20. **Position effect is independent of fav count.** Gradient ~13-17pp at every
     fav count 0-5. Adjacent pairs where both have 0 favs still show ~54-61%
     h2h advantage for later position. Rules out $n_fav leaking across the loop.
-    Reproduce: run fav_leak_test2.py — matched-fav h2h and own-fav gradient.
+    Reproduce: matched-fav h2h and own-fav gradient analysis.
 
 21. **Position effect is independent of allergy count.** Matched-allergy h2h
     stable at 53-57% across na=0-3. Gradient stable at ~14-15pp across total
     arena allergy levels. Rules out $na leaking across the loop.
-    Reproduce: run allergy_leak_test.py.
+    Reproduce: matched-allergy h2h and allergy gradient analysis.
 
 22. **Position effect does not depend on earlier pirate's strength.** Matched-
     strength h2h stable at ~55-59% across all strength bins.
-    Reproduce: run weight_strength_leak_test.py, matched strength h2h section.
+    Reproduce: matched-strength h2h analysis.
 
 23. **Cannot distinguish flat constant (+7) from weight_offset accumulation.**
     17/20 pirates have weight_offset=7 (hit the cap). The 3 exceptions (Orvinn
     wo=0, Squire wo=4, Stuff-A-Roo wo=5) are the weakest pirates, confounding
     weight with strength.
-    Reproduce: run weight_strength_leak_test.py, weight_offset section.
+    Reproduce: weight_offset accumulation analysis.
+
+24. **Position steps are slightly increasing (later steps larger).** Strength-
+    matched h2h log odds ratios: step 0→1 = 0.200, 1→2 = 0.224, 2→3 = 0.250.
+    Consistent with $adj += 7 multiplicative model (die ratios 93/100, 86/93,
+    79/86 are decreasing fractions, so later steps shrink die proportionally
+    more). Range is only 1.24pp (~1.4σ), so suggestive but not conclusive.
+    Reproduce: strength-matched h2h for adjacent pairs (0,1), (1,2), (2,3).
+
+25. **Position h2h odds ratios compose multiplicatively.** Under strength
+    matching, non-adjacent h2h rates predicted from adjacent steps match
+    observed within 2% (ratios 0.979–1.011). Confirms position acts as a
+    consistent per-position multiplicative factor independent of pirate identity.
+    Note: raw (unmatched) composability is a tautology — OR(i,j) cancels by
+    construction. Only strength-matched composability is informative.
+    Reproduce: compute all 6 pairwise h2h rates, strength-matched; compare
+    OR(0,2) vs OR(0,1)*OR(1,2), etc.
+
+## Odds maker
+
+26. **Opening odds = max(2, min(13, floor(1/p))).** The odds maker computes the
+    true win probability p (likely via monte carlo), then displays floor(1/p)
+    clamped to [2, 13]. Evidence: empirical win rates at each odds level match
+    floor-rule midpoints to 3 decimal places for odds 3-5 (obs 0.288/0.225/0.184
+    vs predicted 0.292/0.225/0.183). Floor SSE=368 vs round=1052 vs ceil=1952.
+    Odds=2 and odds=13 are clamped bins absorbing extra mass (odds=2 WR=0.523
+    because all p>0.50 maps to 2; odds=13 WR=0.042 because all p<0.077 maps
+    to 13). The 1/WR at each odds level lands just above the odds value (e.g.
+    odds=5 -> 1/WR=5.45), consistent with floor rounding.
+    Reproduce: compute empirical WR at each opening odds value, compare against
+    predicted midpoints for floor/ceil/round rules.
+
+27. **Odds=2 is the only systematically +EV single-arena bet.** Floor rounding
+    guarantees EV = p*odds <= 1.0 for odds >= 3 (since floor(1/p)=N implies
+    p <= 1/N). But odds=2 is clamped — all p > 1/3 maps to odds=2, including
+    p > 0.50 where EV = p*2 > 1.0. Confirmed by backtest over 32,154 bets:
+      odds=2:  ROI = +4.7%, 95% CI [+3.6%, +5.8%], z=+8.41 (p<0.0001)
+      odds=3:  ROI = -13.7%, CI [-16.1%, -11.3%], z=-11.13 (p<0.0001)
+      odds=4:  ROI = -10.1%, CI [-13.5%, -6.7%], z=-5.89 (p<0.0001)
+      odds=5:  ROI = -8.2%, CI [-12.3%, -4.2%], z=-3.98 (p=0.0001)
+      odds 6-12: CIs all contain zero (insufficient data to determine)
+      odds=13: ROI = -45.9%, CI [-49.1%, -42.6%], z=-27.75 (p<0.0001)
+    Odds=2 ROI is stable across time (4.1-5.3% at 1000-day checkpoints).
+    Reproduce: bet 1 unit on every pirate at each odds level, compute
+    cumulative profit and per-bet return variance.
+
+## Betting strategy
+
+28. **The entire betting edge from opening odds comes from the odds=2 clamp.** A
+    top-10-EV strategy using ANY opening odds gets +78.5% ROI (+44318 profit).
+    Restricting to only 2:1 parlays gets +65.5% ROI (+36891). Excluding ALL 2:1
+    pirates gives -0.7% ROI (-411), i.e. break-even. The opening odds maker is
+    essentially perfect for odds >= 3. Note: current_odds (updated later in the
+    day based on bet volume) may still contain exploitable edge — this analysis
+    only covers opening odds.
+    Reproduce: run backtest.rs strategies make_bets_top_ev, make_bets_2s_parlays,
+    make_bets_no_2s.
+
+29. **Model-filtered odds=2 singles are highly profitable.** Filtering odds=2
+    pirates by model win probability dramatically improves ROI:
+      no filter:  +4.7% ROI (32154 bets)
+      p >= 0.50:  +29.2% ROI (15022 bets)
+      p >= 0.55:  +36.0% ROI (11763 bets)
+      p >= 0.60:  +42.2% ROI (9062 bets)
+    Reproduce: run backtest.rs make_bets_2s_filtered at various thresholds.
+
+30. **Non-2:1 pirates serve as neutral payout multipliers in parlays.** They add
+    no edge themselves but create distinct bet combinations, allowing the same
+    good 2:1 edge to be reused across multiple bet slots (max 10 per day).
+    An "anchored" strategy — every bet must contain at least one good 2:1 pirate
+    (model p >= threshold), padded with any other pirates, EV >= 1.0 — confirms:
+      Anchor p>=0.45 + any:  +78.7% ROI, +44279 profit (matches original)
+      Anchor p>=0.50 + any:  +80.4% ROI, +44626 profit
+      Anchor p>=0.52 + any:  +81.4% ROI, +44670 profit
+      Anchor p>=0.55 + any:  +83.6% ROI, +44684 profit
+    At p>=0.45, profit matches the original strategy (~44.3k), confirming the
+    original's edge comes entirely from 2:1 anchors. Tightening the 2:1 filter
+    improves ROI (78.7% -> 83.6%) while keeping total profit flat (~44.6k),
+    because bad 2:1s are dropped but the remaining good 2:1s still fill 10 slots
+    via non-2:1 padding.
+    Reproduce: run backtest.rs make_bets_anchored_2s at various thresholds.
+
+31. **Model-filtered betting cannot produce edge at non-2:1 opening odds.** For each
+    odds level 2-13, we filtered pirates by model EV threshold (model_p * odds >= T)
+    and swept T from 0.80 to 1.50. Results at each odds level's best threshold:
+      odds=2:  +61.8% ROI (3274 bets, z=+35.3) — strong edge, as expected
+      odds=3:  +3.3% ROI (572 bets, z=+0.56) — not significant
+      odds=4:  +12.2% ROI (164 bets, z=+0.87) — not significant
+      odds=5:  +15.2% ROI (282 bets, z=+1.21) — not significant
+      odds=6:  +3.1% ROI (489 bets, z=+0.30) — not significant
+      odds=7:  +11.0% ROI (82 bets, z=+0.39) — not significant
+      odds=8:  +30.0% ROI (80 bets, z=+0.90) — not significant
+      odds=9:  +9.5% ROI (723 bets, z=+0.87) — not significant
+      odds=10: +13.3% ROI (565 bets, z=+0.99) — not significant
+      odds=11: +29.2% ROI (1277 bets, z=+2.94) — nominally significant but fails
+               Bonferroni correction (84 tests, need z>3.3)
+      odds=12: +30.5% ROI (561 bets, z=+1.93) — not significant
+      odds=13: +39.0% ROI (290 bets, z=+1.64) — not significant
+    High-odds bets require large ROI for significance because variance per bet
+    scales as ~odds² (a 11:1 bet swings +10/-1, so var≈11). With 1500 bets at
+    odds=11, you need ~17% ROI just to reach z=2. Odds=11 is the only non-2:1
+    level showing z>2, and it doesn't survive multiple-testing correction.
+    Confirms: the odds maker is well-calibrated for odds >= 3 and our model
+    cannot manufacture edge where none structurally exists.
+    Reproduce: run food_unified.rs model-filtered edge analysis with EV sweep.
+
+## Tie-break positional advantage theory
+
+32. **Tie-breaking alone reproduces the positional curve to within noise.**
+    A model where 4 equal pirates eat a pile of N food by rolling a die each
+    round (subtract roll from pile, finish when pile<=0, ties go to later
+    position) produces win rates statistically indistinguishable from the
+    empirical curve. Best fit at die=17, N=100 (avg ~12 rounds):
+      Model:     P0=0.1806  P1=0.2179  P2=0.2674  P3=0.3342
+      Empirical: P0=0.1846  P1=0.2152  P2=0.2657  P3=0.3345
+    Chi-squared goodness of fit: chi2=3.87, df=2, p=0.28 (cannot reject).
+    Die sizes 15-17 all pass chi2 test with all 4 positions inside 95% CIs.
+    The step-ratio discrepancy (model [1.00, 1.32, 1.79] vs empirical
+    [1.00, 1.65, 2.25]) is NOT significant — empirical step ratios have
+    very wide bootstrap CIs (ratio[1]: [1.18, 2.39], ratio[2]: [1.74, 3.05])
+    because dividing noisy quantities amplifies uncertainty.
+    Scaling N and d proportionally converges to the same curve — the result
+    depends only on the ratio N/d (equivalently, average number of rounds).
+    Rolling 2 dice per round does not improve the fit; only (1, d2) pairs
+    pass chi2, which are equivalent to a shifted single die.
+    Reproduce: compute rounds PMF via convolution, exact win probs with
+    tie-break, sweep die sizes, bootstrap CIs on empirical win rates.
+
+## Per-pirate allergy effect stability across PHP cutoff
+
+33. **Only Orvinn's allergy effect disappears at the day-4450 cutoff.**
+    Per-pirate OLS (won ~ nf + na + pos) run separately on legacy (days
+    0-4449) and post (days 4450+) periods for all 20 pirates. The allergy
+    coefficient (na) was tested for change via z = (b_post - b_leg) /
+    sqrt(SE_leg² + SE_post²). Results:
+      Orvinn (wo=0, w=221):    leg=-0.023 (p<0.0001) → post=+0.001 (p=0.94), change z=+2.20 **
+      Peg Leg (wo=7, w=202):   leg=-0.038 (p<0.0001) → post=-0.012 (p=0.34), change z=+1.92 (marginal)
+      All other wo=7 pirates:  allergy effect rock-solid in both periods (all post p<0.002)
+    Orvinn's result is expected (wo=0 + PHP rand(1,0) change). Peg Leg is
+    the 2nd-heaviest wo=7 pirate but is only marginally significant and does
+    not survive multiple-testing correction (20 tests). No pirate shows a
+    significant strengthening of allergy effect after correction.
+    Other findings tested across the cutoff that DO NOT change:
+      - Positional advantage curve (all position z < 1.1)
+      - Strength effect (same slope, same R²)
+      - Favorite food effect (same gradient)
+      - Per-pirate anomalies (same outliers persist)
+      - Odds=2 edge (still +EV, z=+5.15 in post)
+      - Arena identity (still no effect)
+    Reproduce: per-pirate OLS (won ~ nf + na + pos) on legacy vs post
+    splits, z-test on coefficient change, chi-squared on positional curve.
+
+## Odds maker internals
+
+34. **The odds maker is a simulation, not calibrated from outcomes.** The odds
+    maker uses the same game algorithm (including the pre-PHP-fix allergy formula
+    for Orvinn) to compute win probabilities, then displays floor(1/p) clamped
+    to [2,13]. Evidence: after the PHP upgrade (~round 8616, Dec 2022) that fixed
+    Orvinn's allergy immunity (finding 4c), the odds maker STILL penalizes Orvinn
+    for allergies identically. OLS regression of Orvinn's odds on na (controlling
+    for nf, pos, opponent strength) gives:
+      Legacy na coefficient: +0.896 (t=+23.9, p<0.0001)
+      Modern na coefficient: +0.937 (t=+12.9, p<0.0001)
+    If the odds maker were aware of the change, the modern coefficient would be ~0.
+    Instead it's unchanged — the odds maker still thinks allergies hurt Orvinn.
+    Calibration by na confirms: in modern at na=0, 1/odds predicts 18.2% but actual
+    WR is 11.1% (ratio 0.61); at na=2-3 the odds maker now underestimates Orvinn
+    (predicted 10.9%/9.4%, actual 11.7%/9.4%) because his WR is flat across na in
+    modern while the odds maker still applies the legacy penalty.
+    This also explains why models trained on legacy data perform slightly better on
+    modern data: the Orvinn PHP bug added noise to legacy outcomes that any wo=0
+    model (which is correct for modern) cannot capture. The naive LL gap between
+    regimes is +0.031 for Orvinn arenas but only +0.003 for non-Orvinn arenas;
+    the overall gap (+0.0085) is not statistically significant (permutation test
+    p=0.15) and disappears entirely when Orvinn arenas are excluded (p=0.38).
+    Reproduce: OLS (orvinn_odds ~ na + nf + pos + opp_str) on legacy vs post;
+    compare predicted (1/odds) vs actual WR by na in each regime.
+
+35. **Pirate grouping into arenas is confirmed random in both regimes.** Re-tested
+    after splitting on the PHP cutoff (finding 4c). Post-legacy (n=1193 days):
+    pairwise co-occurrence chi2=163.9 (p=0.91), triplet chi2=1139.3 (p=0.49),
+    z-score variance=1.025. No strength-based attraction/repulsion: correlation
+    between |strength_diff| and co-occurrence rate r=-0.06 (p=0.41); within-arena
+    strength variance matches random simulation (z=-0.44, p=0.66). No serial
+    correlation (lag-1 autocorrelation=0.001, same-arena-next-day=20.1%≈20%).
+    Position within arena is uniform (2/20 pirates p<0.05, expected 1).
+    Legacy regime showed marginal z=2.30 (p=0.02) on arena strength balance but
+    this does not replicate in post (z=0.94, p=0.35) and is likely noise.
+    Reproduce: run regime_analysis.py (pairwise/triplet co-occurrence, strength
+    balance simulation, serial correlation).
+
+36. **Food assignment is confirmed random and independent across arenas.** Post-
+    legacy: food frequency uniform (chi2=28.5, p=0.89), food-pirate independence
+    (0/20 pirates p<0.05), food pairwise co-occurrence (chi2=771.8, p=0.57),
+    cross-arena food overlap=2.506 (expected 2.5, t=0.58, p=0.56). Daily food
+    appearance distribution matches Binom(5,0.25) (chi2=5.9, p=0.20). Each arena
+    draws 10 foods without replacement from 40; arenas are independent.
+    Reproduce: run regime_analysis.py sections 5-6.
 
 ## Best models
 

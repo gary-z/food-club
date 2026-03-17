@@ -1,0 +1,6 @@
+{
+    "name": "Claude Code Sandbox",
+    "build": {
+        "dockerfile": "Dockerfile"
+    }
+}

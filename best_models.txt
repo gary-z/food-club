@@ -98,3 +98,82 @@ $score = rand(1, $upper) + rand(1, $upper) + rand(1, $upper);
 - The position mechanism is arguably more natural for game code
 - 3 rolls instead of 4; multiplicative favs instead of bulk subtraction
 - Two different structural approaches converge on the same predictive power
+
+
+## Model 3: Allergy-After with Iterative Fav (2026-03-16, updated)
+
+Train LL: -1.07214
+Test  LL: -1.08477 (baseline -1.08601, delta +0.00124)
+
+### Pseudocode
+
+```
+$life = $pirate->strength;
+$wo = min(floor((221 - $pirate->weight) / 2), 6);
+// Allergy damage applied AFTER fav reduction (see below)
+$upper = max(1, 124 - $life);
+for ($i = 0; $i < $nf; $i++) {
+    $upper -= floor($upper / 17);
+    $upper = max(1, $upper);
+}
+for ($i = 0; $i < $na; $i++) {
+    $upper += dice(1, $wo);     // allergy increases die after fav
+}
+$time = 0;
+for ($i = 0; $i < 6; $i++) {
+    $time += dice(1, $upper);
+}
+$time = floor($time / 22);
+// Lowest time wins. Ties: later position wins.
+```
+
+### Parameters
+- BASE = 124
+- FAV_DIV = 17 (iterative: recompute floor each fav)
+- N_ROLLS = 6
+- DIVISOR = 22
+- MAX_WEIGHT = 221
+- MAX_EFFECT = 6
+
+### Key change from Model 1
+Allergy damage applied to the die AFTER fav reduction, not before. In Model 1,
+allergy reduces strength before computing the die, inflating upper, which then
+inflates the fav reduction (floor(upper/K)). This gave pirates with both favs and
+allergies (Crossblades, Puffo, Lucky) a spurious bonus. Applying allergy after
+decouples the two effects.
+
+
+## Optimality Bounds (2026-03-16)
+
+### Method
+Self-entropy: for each arena, compute model's predicted win probs (p1..p4), then
+E[LL] = sum(pi * ln(pi)). This is the best LL achievable if the model were exactly
+the true data-generating process. The gap (real LL - self-entropy) measures total
+model misspecification.
+
+### Results on post-legacy data (1193 days, 5965 arenas)
+
+| Model              | Self-entropy | Post LL  | Gap      |
+|--------------------|-------------|----------|----------|
+| Model 1 baseline   | -1.07405    | -1.06493 | +0.00912 |
+| S1 iter fav        | -1.08261    | -1.06512 | +0.01749 |
+| Model 3 allg-after | -1.06462    | -1.06371 | +0.00091 |
+
+### Interpretation
+- Model 3 has the tightest gap (0.00091) on post-legacy data — nearly optimal.
+- Positive gaps (Model 1, S1) mean the model is underconfident: actual outcomes are
+  more predictable than the model thinks, so real LL exceeds self-entropy.
+- The self-entropy varies across models (-1.064 to -1.083), so it cannot be used as
+  an absolute bound on the true optimum. It is model-dependent.
+- The true optimum LL is unknown but must be >= max(real LL across all models).
+  Best observed: -1.06371 (Model 3 on post data).
+- Calibration analysis shows all models are well-calibrated (predicted vs actual win
+  rates match within 1-2pp across all probability buckets). The [80-100%] bucket
+  shows ~2pp overconfidence consistently. Total calibration LL cost is ~0.00013.
+- Uniform random baseline: ln(0.25) = -1.38629. Our models capture >99.5% of the
+  range from uniform to estimated optimum.
+
+### Key caveat
+Self-entropy is not the true optimum — it is the optimum *if* the model were correct.
+A model with different structure could have different self-entropy. However, the
+small gap for Model 3 (0.00091) and excellent calibration suggest we are very close.

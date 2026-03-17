@@ -25,6 +25,7 @@ pub struct Pirate {
     pub win_rate: f64,
     pub favorite_courses: HashSet<usize>,
     pub allergy_courses: HashSet<usize>,
+    pub fav_category_courses: Vec<HashSet<usize>>,  // per-category fav course sets
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +79,18 @@ impl GameData {
                             .unwrap_or_default()
                     })
                     .collect();
+                let fav_category_courses: Vec<HashSet<usize>> = p
+                    .favorites
+                    .iter()
+                    .map(|cat| {
+                        category_courses
+                            .get(cat.as_str())
+                            .cloned()
+                            .unwrap_or_default()
+                            .into_iter()
+                            .collect()
+                    })
+                    .collect();
                 Pirate {
                     name: p.name,
                     weight: p.weight,
@@ -85,6 +98,7 @@ impl GameData {
                     win_rate: p.win_rate,
                     favorite_courses,
                     allergy_courses,
+                    fav_category_courses,
                 }
             })
             .collect();
@@ -124,14 +138,23 @@ pub struct HistMatch {
     pub pirate_indices: [usize; 4],
     pub course_indices: Vec<usize>,
     pub winner_pos: usize, // 0-3 index into pirate_indices
+    pub opening_odds: [u32; 4], // opening odds for each pirate
+    pub legacy: bool, // true for arenas before PHP upgrade (~round 8616, Dec 2022)
 }
 
 /// Load historical matches and map to GameData indices.
 pub fn load_historical_matches(data: &GameData, json: &str) -> Vec<Vec<HistMatch>> {
     #[derive(Deserialize)]
-    struct HP { name: String, #[allow(dead_code)] odds: u32 }
+    struct HP { name: String, odds: u32 }
     #[derive(Deserialize)]
-    struct HA { #[allow(dead_code)] arena_name: String, foods: Vec<String>, pirates: Vec<HP>, winner: String }
+    struct HA {
+        #[allow(dead_code)] arena_name: String,
+        foods: Vec<String>,
+        pirates: Vec<HP>,
+        winner: String,
+        #[serde(default)]
+        legacy: bool,
+    }
 
     let days: Vec<Vec<HA>> = serde_json::from_str(json).expect("Failed to parse historical matches");
 
@@ -143,13 +166,20 @@ pub fn load_historical_matches(data: &GameData, json: &str) -> Vec<Vec<HistMatch
                 data.pirate_index(&arena.pirates[2].name),
                 data.pirate_index(&arena.pirates[3].name),
             ];
+            let opening_odds: [u32; 4] = [
+                arena.pirates[0].odds,
+                arena.pirates[1].odds,
+                arena.pirates[2].odds,
+                arena.pirates[3].odds,
+            ];
             let course_indices: Vec<usize> = arena.foods.iter()
                 .filter_map(|f| data.course_index(f))
                 .collect();
             let winner_pos = arena.pirates.iter()
                 .position(|p| p.name == arena.winner)
                 .expect("Winner not in arena");
-            HistMatch { pirate_indices, course_indices, winner_pos }
+            let legacy = arena.legacy;
+            HistMatch { pirate_indices, course_indices, winner_pos, opening_odds, legacy }
         }).collect()
     }).collect()
 }
