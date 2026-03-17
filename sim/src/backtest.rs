@@ -975,22 +975,12 @@ fn main() {
     }).collect();
 
     // Run strategies
-    let mut strat_top_ev = StrategyResult::new();
-    let mut strat_anc_55 = StrategyResult::new();
     let mut strat_comb_55_j1 = StrategyResult::new();
 
     for (day_arenas, probs) in historical.iter().zip(day_probs.iter()) {
-        strat_top_ev.add_day(&make_bets_top_ev(probs, day_arenas), day_arenas);
-        strat_anc_55.add_day(&make_bets_anchored_2s(probs, day_arenas, 0.55), day_arenas);
         strat_comb_55_j1.add_day(&make_bets_current_exploit(probs, day_arenas, 0.55, 1), day_arenas);
     }
 
-    println!("=== STRATEGY COMPARISON (Model 4) ===\n");
-    println!("  --- Pure model EV (opening odds payout) ---");
-    strat_top_ev.print("Top-10 EV (model_p * odds)");
-    strat_anc_55.print("Anchor 2:1 p>=0.55 + any, EV>=1");
-
-    println!();
-    println!("  --- Combined: current_odds payout ---");
+    println!("=== STRATEGY (Model 4) ===\n");
     strat_comb_55_j1.print("2:1 p>=0.55 OR jump>=1, cur odds");
 }
