@@ -15,8 +15,6 @@
   button:hover { background: #c73550; }
   .status { margin: 8px 0; font-size: 13px; color: #aaa; }
   .status.error { color: #e94560; }
-  .round-info { color: #888; font-size: 12px; margin-bottom: 12px; }
-
   /* Main combined table */
   .main-table { width: 100%; border-collapse: collapse; }
   .main-table th { padding: 6px 8px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #333; text-align: center; white-space: nowrap; }
@@ -72,13 +70,13 @@
 
 <div class="controls">
   <label>Round: <input type="number" id="roundInput" value="" placeholder="auto"></label>
-  <label>Max Bet: <input type="number" id="maxBetInput" value="17682"></label>
+  <label>Bet Amount: <input type="number" id="betAmountInput" value="17682"></label>
+  <label>Max Payout: <input type="number" id="maxPayoutInput" value="56"></label>
   <button onclick="loadRound()">Load Round</button>
   <button onclick="loadLatest()">Latest</button>
 </div>
 
 <div id="status" class="status"></div>
-<div id="roundInfo" class="round-info"></div>
 <div id="mainContent"></div>
 
 <script src="foodclub.js"></script>
@@ -127,8 +125,7 @@ function processRound(roundData) {
   const arenas = parseRound(roundData);
   const probs = computeAllProbs(arenas);
 
-  const maxBet = parseInt(document.getElementById('maxBetInput').value) || 17682;
-  const maxPayoutRatio = Math.floor(1000000 / maxBet);
+  const maxPayoutRatio = parseInt(document.getElementById('maxPayoutInput').value) || 56;
 
   const bets = generateBets(arenas, probs, {
     maxBets: 10,
@@ -137,18 +134,7 @@ function processRound(roundData) {
     minJump: 1,
   });
 
-  setStatus(`Round ${roundData.round} loaded.`);
-
-  const isOver = roundData.winners && roundData.winners.some(w => w > 0);
-  let info = `Round ${roundData.round}`;
-  if (roundData.start) info += ` | Started ${new Date(roundData.start).toLocaleString()}`;
-  if (isOver) {
-    const winners = roundData.winners.map((w, i) =>
-      w > 0 ? PIRATES[roundData.pirates[i][w-1] - 1].name : '?'
-    );
-    info += ` | Winners: ${winners.join(', ')}`;
-  }
-  document.getElementById('roundInfo').textContent = info;
+  setStatus('');
 
   renderMain(arenas, probs, bets, maxPayoutRatio, roundData);
 }
@@ -351,7 +337,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '</tr>';
 
   // Make Bet row
-  const maxBet = parseInt(document.getElementById('maxBetInput').value) || 17682;
+  const maxBet = parseInt(document.getElementById('betAmountInput').value) || 17682;
   html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa"></td>';
   html += '<td colspan="6"></td>';
   for (let b = 0; b < numBets; b++) {

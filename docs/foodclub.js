@@ -262,14 +262,20 @@ function generateBets(arenas, probs, options = {}) {
 
   const n = arenas.length;
 
-  // Precompute anchors
+  // Precompute anchors and jump status
+  const pirateIsJump = arenas.map((arena, ai) =>
+    arena.pirateIds.map((pid, pi) => {
+      const curOdds = arena.currentOdds[pi];
+      const openOdds = arena.openingOdds[pi];
+      return curOdds >= openOdds + minJump;
+    })
+  );
+
   const pirateIsAnchor = arenas.map((arena, ai) =>
     arena.pirateIds.map((pid, pi) => {
       const prob = probs[ai][pi];
       const openOdds = arena.openingOdds[pi];
-      const curOdds = arena.currentOdds[pi];
-      return (openOdds === 2 && prob >= min2sProb) ||
-             (curOdds >= openOdds + minJump);
+      return (openOdds === 2 && prob >= min2sProb) || pirateIsJump[ai][pi];
     })
   );
 
@@ -300,7 +306,11 @@ function generateBets(arenas, probs, options = {}) {
         for (let j = 0; j < arenaIndices.length; j++) {
           const ai = arenaIndices[j];
           const pi = comboIndices[j];
-          winProb *= probs[ai][pi];
+          // Floor-for-jumped: use odds-maker floor 1/(opening+1) for jumped pirates
+          const prob = pirateIsJump[ai][pi]
+            ? 1.0 / (arenas[ai].openingOdds[pi] + 1)
+            : probs[ai][pi];
+          winProb *= prob;
           payout = Math.min(payout * arenas[ai].currentOdds[pi], maxPayoutRatio);
           selections.push({
             arena: ai,
