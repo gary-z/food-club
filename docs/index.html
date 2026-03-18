@@ -37,7 +37,7 @@
 
   /* Numeric cells */
   .num { font-family: monospace; }
-  .prob-cell { font-family: monospace; }
+  .main-table td.prob-cell { font-family: monospace; text-align: right; }
 
   /* Payout coloring */
   .payout-pos { color: #4caf50; font-family: monospace; }
@@ -47,6 +47,7 @@
   .odds-changed { color: #4caf50; font-weight: bold; }
   .odds-arrow { color: #4caf50; font-size: 10px; }
   .odds-down { color: #f44336; font-weight: bold; }
+  .main-table td.edge-cell { text-align: right; }
   .main-table td.odds-cell { font-family: monospace; text-align: right; white-space: nowrap; }
   .odds-arrow-down { color: #f44336; font-size: 10px; }
 
@@ -262,16 +263,16 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
       if (openOdds === 2) {
         const edge = prob * curOdds - 1;
         const edgeCls = edge >= 0 ? 'payout-pos' : 'payout-neg';
-        html += `<td class="${edgeCls}">${edge >= 0 ? '+' : ''}${(edge * 100).toFixed(0)}%</td>`;
+        html += `<td class="edge-cell ${edgeCls}">${edge >= 0 ? '+' : ''}${(edge * 100).toFixed(0)}%</td>`;
       } else if (curOdds > openOdds) {
         const minEdge = curOdds / (openOdds + 1) - 1;
         if (minEdge > 0) {
-          html += `<td class="payout-pos">&gt;+${(minEdge * 100).toFixed(0)}%</td>`;
+          html += `<td class="edge-cell payout-pos">+${(minEdge * 100).toFixed(0)}%</td>`;
         } else {
-          html += `<td class="num" style="color:#555">—</td>`;
+          html += `<td class="edge-cell num" style="color:#555">—</td>`;
         }
       } else {
-        html += `<td class="num" style="color:#555">—</td>`;
+        html += `<td class="edge-cell num" style="color:#555">—</td>`;
       }
 
       // Fav and Allergy counts
