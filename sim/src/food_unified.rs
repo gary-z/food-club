@@ -443,11 +443,99 @@ fn win_probs_from_pmfs(pmfs: [&[f64]; 4], tiebreak: u8) -> [f64; 4] {
 
 struct EvalResult { ll: f64, violations: f64 }
 
+// Probability interval implied by house odds N = max(2, min(13, floor(1/p)))
+// For N in 3..=12: floor(1/p) = N => p in (1/(N+1), 1/N]
+// For N=2: floor(1/p) <= 2 => p in (1/3, 1)  (weak upper — all p>0.5 maps here)
+// For N=13: floor(1/p) >= 13 => p in (0, 1/13] (weak lower)
 fn odds_prob_bounds(odds: u32) -> (f64, f64) {
     match odds {
         2 => (1.0 / 3.0, 1.0),
         13 => (0.0, 1.0 / 13.0),
         n => (1.0 / (n as f64 + 1.0), 1.0 / n as f64),
+    }
+}
+
+fn clamp_and_redistribute(probs: &[f64; 4], intervals: &[(f64, f64); 4]) -> [f64; 4] {
+    let mut p = *probs;
+    let mut fixed = [false; 4];
+    for _ in 0..20 {
+        let mut changed = false;
+        for i in 0..4 {
+            if fixed[i] { continue; }
+            if p[i] < intervals[i].0 {
+                p[i] = intervals[i].0;
+                fixed[i] = true;
+                changed = true;
+            } else if p[i] > intervals[i].1 {
+                p[i] = intervals[i].1;
+                fixed[i] = true;
+                changed = true;
+            }
+        }
+        let fixed_sum: f64 = (0..4).filter(|&i| fixed[i]).map(|i| p[i]).sum();
+        let free_idx: Vec<usize> = (0..4).filter(|&i| !fixed[i]).collect();
+        let free_sum: f64 = free_idx.iter().map(|&i| p[i]).sum();
+        if !free_idx.is_empty() && free_sum > 0.0 {
+            let target = 1.0 - fixed_sum;
+            let scale = target / free_sum;
+            for &i in &free_idx {
+                p[i] *= scale;
+            }
+        }
+        if !changed { break; }
+    }
+    p
+}
+
+fn eval_pmf_clamped(data: &GameData, matches: &[Vec<HistMatch>], p: &Params, life_adj: &[i32]) -> EvalResult {
+    let max_upper = if p.allergy_order == 1 || p.fav_str_bonus > 0 {
+        p.base + 80
+    } else {
+        p.base + 10
+    };
+    let roll_table: Vec<Vec<f64>> = (0..=max_upper)
+        .map(|d| dice_sum_pmf(p.n_rolls, d))
+        .collect();
+
+    let flat: Vec<&HistMatch> = matches.iter().flat_map(|d| d.iter()).collect();
+    let results: Vec<f64> = flat.par_iter().map(|m| {
+        let arena_p = if m.legacy && p.legacy_wo_min > 0 {
+            let mut lp = *p;
+            lp.wo_min = p.legacy_wo_min;
+            lp
+        } else {
+            *p
+        };
+
+        let pirates: [&Pirate; 4] = std::array::from_fn(|i| &data.pirates[m.pirate_indices[i]]);
+        let counts: [(u32, u32); 4] = std::array::from_fn(|i| {
+            course_counts(pirates[i], &m.course_indices, arena_p.overlap_mode)
+        });
+        let init_life: [u32; 4] = std::array::from_fn(|i| {
+            let adj = if m.pirate_indices[i] < life_adj.len() { life_adj[m.pirate_indices[i]] } else { 0 };
+            (pirates[i].strength as i32 + adj).max(0) as u32
+        });
+
+        let pmfs: [Vec<f64>; 4] = std::array::from_fn(|i| {
+            pirate_score_pmf(pirates[i].weight, init_life[i], counts[i].0, counts[i].1, i, &arena_p, &roll_table)
+        });
+        let raw_probs = win_probs_from_pmfs([&pmfs[0], &pmfs[1], &pmfs[2], &pmfs[3]], p.tiebreak);
+
+        // Get odds intervals and clamp
+        let intervals: [(f64, f64); 4] = std::array::from_fn(|i| {
+            odds_prob_bounds(m.opening_odds[i])
+        });
+        let probs = clamp_and_redistribute(&raw_probs, &intervals);
+
+        probs[m.winner_pos].max(1e-10).ln()
+    }).collect();
+
+    let n = results.len() as f64;
+    let sum_ll: f64 = results.iter().sum();
+
+    EvalResult {
+        ll: sum_ll / n,
+        violations: 0.0,
     }
 }
 
@@ -573,6 +661,151 @@ fn main() {
     let bl_mod = eval_pmf(&data, &modern, &baseline, &[]);
     println!("Baseline M1: legacy={:.5} modern={:.5}", bl_leg.ll, bl_mod.ll);
 
+    // === Worst violations: arenas where model disagrees most with odds maker ===
+    {
+        let m4 = Params {
+            base: 120, n_rolls: 6, fav_mode: 2, fav_param: 16,
+            pos_mode: 0, pos_step: 0, tiebreak: 0, divisor: 22, quant_round: 0,
+            max_effect: 6, allergy_mode: 0, allergy_param: 0, wo_min: 0, max_fav: 0,
+            str_mode: 0, str_decay: 0, overlap_mode: 0, allergy_order: 1, fav_str_bonus: 0, legacy_wo_min: 0,
+        };
+        let max_upper_m4 = m4.base + 80;
+        let roll_table_m4: Vec<Vec<f64>> = (0..=max_upper_m4)
+            .map(|d| dice_sum_pmf(m4.n_rolls, d))
+            .collect();
+
+        // For each pirate-slot, compute violation magnitude
+        // Metric: log(model_p / interval_bound) — positive if we overshoot upper, negative if undershoot lower
+        struct Violation {
+            day_idx: usize,
+            arena_idx: usize,
+            pos: usize,
+            pirate_idx: usize,
+            model_p: f64,
+            odds: u32,
+            lo: f64,
+            hi: f64,
+            log_ratio: f64, // log(model_p / bound) — magnitude of violation
+            direction: i8,  // +1 = model says stronger than odds, -1 = weaker
+            // arena context
+            all_model_p: [f64; 4],
+            all_odds: [u32; 4],
+            all_pirate_idx: [usize; 4],
+            all_nf: [u32; 4],
+            all_na: [u32; 4],
+            winner_pos: usize,
+        }
+
+        let mut violations: Vec<Violation> = Vec::new();
+        let all_data = [(&modern, "modern"), (&legacy, "legacy")];
+
+        for &(dataset, _label) in &all_data {
+            for (di, day) in dataset.iter().enumerate() {
+                for (ai, m) in day.iter().enumerate() {
+                    let pirates: [&Pirate; 4] = std::array::from_fn(|i| &data.pirates[m.pirate_indices[i]]);
+                    let counts: [(u32, u32); 4] = std::array::from_fn(|i| {
+                        course_counts(pirates[i], &m.course_indices, m4.overlap_mode)
+                    });
+                    let pmfs: [Vec<f64>; 4] = std::array::from_fn(|i| {
+                        pirate_score_pmf(pirates[i].weight, pirates[i].strength, counts[i].0, counts[i].1, i, &m4, &roll_table_m4)
+                    });
+                    let probs = win_probs_from_pmfs([&pmfs[0], &pmfs[1], &pmfs[2], &pmfs[3]], m4.tiebreak);
+
+                    for pos in 0..4 {
+                        let odds = m.opening_odds[pos];
+                        if odds == 2 || odds == 13 { continue; } // clamped bins, skip
+                        let (lo, hi) = odds_prob_bounds(odds);
+                        let p = probs[pos];
+                        let (log_ratio, direction) = if p > hi {
+                            ((p / hi).ln(), 1i8) // model says stronger
+                        } else if p < lo {
+                            ((lo / p).ln(), -1i8) // model says weaker
+                        } else {
+                            continue; // within interval
+                        };
+                        violations.push(Violation {
+                            day_idx: di, arena_idx: ai, pos,
+                            pirate_idx: m.pirate_indices[pos],
+                            model_p: p, odds, lo, hi, log_ratio, direction,
+                            all_model_p: [probs[0], probs[1], probs[2], probs[3]],
+                            all_odds: m.opening_odds,
+                            all_pirate_idx: m.pirate_indices,
+                            all_nf: [counts[0].0, counts[1].0, counts[2].0, counts[3].0],
+                            all_na: [counts[0].1, counts[1].1, counts[2].1, counts[3].1],
+                            winner_pos: m.winner_pos,
+                        });
+                    }
+                }
+            }
+        }
+
+        violations.sort_by(|a, b| b.log_ratio.partial_cmp(&a.log_ratio).unwrap());
+
+        println!("\n=== Top 20 worst model-vs-odds violations (modern+legacy, excl odds 2/13) ===\n");
+        for (rank, v) in violations.iter().take(20).enumerate() {
+            let p = &data.pirates[v.pirate_idx];
+            let dir = if v.direction > 0 { "OVER" } else { "UNDER" };
+            let model_odds = (1.0 / v.model_p).floor() as u32;
+            println!("  #{:2} {} | {} (str={}, wt={}, wo={})",
+                     rank + 1, dir, p.name, p.strength, p.weight,
+                     ((MAX_WEIGHT - p.weight.min(MAX_WEIGHT)) / 2).min(m4.max_effect));
+            println!("       model_p={:.3} (would be odds {}) vs actual odds {} [interval {:.3}-{:.3}]  log_ratio={:.3}",
+                     v.model_p, model_odds, v.odds, v.lo, v.hi, v.log_ratio);
+            println!("       pos={} nf={} na={} | winner=pos{}", v.pos, v.all_nf[v.pos], v.all_na[v.pos], v.winner_pos);
+            // Show all 4 pirates in the arena
+            println!("       Arena:");
+            for i in 0..4 {
+                let pi = &data.pirates[v.all_pirate_idx[i]];
+                let marker = if i == v.pos { " <<" } else if i == v.winner_pos { " [W]" } else { "" };
+                println!("         p{}: {:<24} str={:<2} wt={:<3} odds={:<2} model={:.3} nf={} na={}{}",
+                         i, pi.name, pi.strength, pi.weight, v.all_odds[i],
+                         v.all_model_p[i], v.all_nf[i], v.all_na[i], marker);
+            }
+            println!();
+        }
+
+        // Aggregate: which pirates appear most often in violations?
+        println!("=== Pirates with most violations (model too strong = OVER, too weak = UNDER) ===\n");
+        let mut pirate_over = vec![0u32; data.pirates.len()];
+        let mut pirate_under = vec![0u32; data.pirates.len()];
+        let mut pirate_total_slots = vec![0u32; data.pirates.len()]; // total non-2/13 slots
+        let mut pirate_sum_log = vec![0.0f64; data.pirates.len()];
+        // Count total slots per pirate
+        for dataset in &[&modern, &legacy] {
+            for day in dataset.iter() {
+                for m in day.iter() {
+                    for pos in 0..4 {
+                        let odds = m.opening_odds[pos];
+                        if odds == 2 || odds == 13 { continue; }
+                        pirate_total_slots[m.pirate_indices[pos]] += 1;
+                    }
+                }
+            }
+        }
+        for v in &violations {
+            if v.direction > 0 { pirate_over[v.pirate_idx] += 1; }
+            else { pirate_under[v.pirate_idx] += 1; }
+            pirate_sum_log[v.pirate_idx] += v.log_ratio * v.direction as f64;
+        }
+        println!("  {:<28} {:>4} {:>5} {:>5} {:>6} {:>7} {:>5}", "pirate", "str", "wt", "over", "under", "total", "avg_d");
+        let mut pidxs: Vec<usize> = (0..data.pirates.len()).collect();
+        pidxs.sort_by(|&a, &b| {
+            let tot_a = pirate_over[a] + pirate_under[a];
+            let tot_b = pirate_over[b] + pirate_under[b];
+            tot_b.cmp(&tot_a)
+        });
+        for &pidx in pidxs.iter().take(20) {
+            let tot = pirate_over[pidx] + pirate_under[pidx];
+            if tot == 0 { continue; }
+            let avg_dir = pirate_sum_log[pidx] / tot as f64;
+            let slots = pirate_total_slots[pidx];
+            println!("  {:<28} {:>4} {:>5} {:>5} {:>5} {:>5}/{:<5} {:>+.3}",
+                     data.pirates[pidx].name, data.pirates[pidx].strength, data.pirates[pidx].weight,
+                     pirate_over[pidx], pirate_under[pidx], tot, slots, avg_dir);
+        }
+    }
+
+    if false {
     // NN best on modern: -1.06277
     // We need to beat -1.06493 (M1 on modern)
 
@@ -860,6 +1093,7 @@ fn main() {
     println!("\nBaseline M1 modern: {:.5}", bl_mod.ll);
     println!("Model 4 modern:     -1.06314");
     println!("NN best modern:     -1.06277");
+    } // end if false
 
 }
 

@@ -350,6 +350,41 @@
     draws 10 foods without replacement from 40; arenas are independent.
     Reproduce: run regime_analysis.py sections 5-6.
 
+37. **No "super favorite" or "super allergy" foods exist.** At fixed pirate and
+    fixed nf, win rate does not vary by which specific fav foods are present.
+    Chi-sq test across foods within each (pirate, nf) bucket: 0/100 significant
+    after Bonferroni, 3/100 at p<0.05 (expected 5). Same for allergies at fixed
+    na: 0/73 significant after Bonferroni, 1/73 at p<0.05 (expected 3.7).
+    Confirms finding 8 (courses are fungible) at the individual food level.
+    Reproduce: per-pirate per-food WR at fixed nf/na, chi-sq within bucket.
+
+38. **No food drafting or distribution among pirates.** All pirates eat all 10
+    foods. Tested via: (a) food slot x pirate position interaction shows zero
+    signal (all chi-sq p>0.36), (b) log-odds of winning is linear in nf with no
+    flattening at high nf (R²=0.90), (c) position advantage is identical whether
+    or not two pirates share foods — later position h2h WR = 0.581 with zero
+    overlap vs 0.585 with overlap (n=84k pairs). Overlap count (0-6 shared foods)
+    shows no gradient in position advantage. Tested fav-only overlap, allergy-
+    only overlap, and all cross-type overlaps (fav×alg) — none interact with
+    position. The position effect is purely intrinsic to the position slot.
+    Reproduce: food slot × position chi-sq; log-odds linearity; h2h WR by
+    overlap count across all position pairs.
+
+39. **Allergy capping does not improve NN predictions.** Tested capping na at
+    1-5 in the 4-feature NN (str, wt, nf, na). Caps ≤3 hurt significantly
+    (na cap=1: -0.015 LL). Caps 4-5 are within noise of baseline (+0.0001).
+    The NN already handles allergy counts correctly; the worst-predicted arenas
+    (high-allergy pirates winning) are genuine upsets, not model errors.
+    Reproduce: train NN with capped na, compare test LL on mixed hash split.
+
+40. **NN prediction accuracy does not depend on food overlap between pirates.**
+    Arenas where foods are relevant (fav or allergy) to more pirates show weakly
+    worse NN log-likelihood (r=-0.033, p=0.0001), but the odds-maker degrades
+    identically (r=-0.031, p=0.0002). This is inherent noise from more food
+    effects in play, not a model-specific error. Both models handle food overlap
+    equally well.
+    Reproduce: bin NN and odds-maker LL by total food relevance across pirates.
+
 ## Best models
 
 - **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,

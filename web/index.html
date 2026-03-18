@@ -48,6 +48,9 @@
   /* Odds change */
   .odds-changed { color: #4caf50; font-weight: bold; }
   .odds-arrow { color: #4caf50; font-size: 10px; }
+  .odds-down { color: #f44336; font-weight: bold; }
+  .main-table td.odds-cell { font-family: monospace; text-align: right; white-space: nowrap; }
+  .odds-arrow-down { color: #f44336; font-size: 10px; }
 
   /* Bet circles */
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
@@ -269,11 +272,18 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
       // Probability
       html += `<td class="prob-cell">${(prob * 100).toFixed(1)}%</td>`;
 
-      // Edge: only meaningful for 2:1 opening odds pirates
+      // Edge column
       if (openOdds === 2) {
         const edge = prob * curOdds - 1;
         const edgeCls = edge >= 0 ? 'payout-pos' : 'payout-neg';
         html += `<td class="${edgeCls}">${edge >= 0 ? '+' : ''}${(edge * 100).toFixed(0)}%</td>`;
+      } else if (curOdds > openOdds) {
+        const minEdge = curOdds / (openOdds + 1) - 1;
+        if (minEdge > 0) {
+          html += `<td class="payout-pos">&gt;+${(minEdge * 100).toFixed(0)}%</td>`;
+        } else {
+          html += `<td class="num" style="color:#555">—</td>`;
+        }
       } else {
         html += `<td class="num" style="color:#555">—</td>`;
       }
@@ -283,13 +293,15 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
       html += `<td class="num">${cc.na || ''}</td>`;
 
       // Opening odds
-      html += `<td class="num">${openOdds}:1</td>`;
+      html += `<td class="odds-cell">${openOdds}:1</td>`;
 
       // Current odds
-      if (curOdds !== openOdds) {
-        html += `<td class="num"><span class="odds-arrow">\u25B2</span> <span class="odds-changed">${curOdds}:1</span></td>`;
+      if (curOdds > openOdds) {
+        html += `<td class="odds-cell"><span class="odds-arrow">\u25B2</span><span class="odds-changed">${curOdds}:1</span></td>`;
+      } else if (curOdds < openOdds) {
+        html += `<td class="odds-cell"><span class="odds-arrow-down">\u25BC</span><span class="odds-down">${curOdds}:1</span></td>`;
       } else {
-        html += `<td class="num">${curOdds}:1</td>`;
+        html += `<td class="odds-cell">${curOdds}:1</td>`;
       }
 
       // Bet circles

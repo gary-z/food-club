@@ -181,6 +181,7 @@ struct HistArena {
     legacy: bool,
 }
 
+#[derive(Clone)]
 struct Bet {
     pirate_names: Vec<String>,
     win_probability: f64,
@@ -243,375 +244,68 @@ fn make_bets_top_ev(
     possible_bets
 }
 
-/// Only bet on single-arena odds=2 pirates, ranked by model probability.
-fn make_bets_only_2s(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-) -> Vec<Bet> {
-    let mut bets: Vec<Bet> = Vec::new();
-    for (ai, arena) in arenas.iter().enumerate() {
-        for pirate in &arena.pirates {
-            if pirate.odds == 2 {
-                let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                bets.push(Bet {
-                    pirate_names: vec![pirate.name.clone()],
-                    win_probability: prob,
-                    payout: 2,
-                });
-            }
-        }
+// Probability interval implied by house odds N = max(2, min(13, floor(1/p)))
+fn odds_prob_bounds(odds: u32) -> (f64, f64) {
+    match odds {
+        2 => (1.0 / 3.0, 1.0),
+        13 => (0.0, 1.0 / 13.0),
+        n => (1.0 / (n as f64 + 1.0), 1.0 / n as f64),
     }
-    // Sort by probability (highest first = best EV at fixed payout)
-    bets.sort_by(|a, b| b.win_probability.partial_cmp(&a.win_probability).unwrap());
-    bets.truncate(10);
-    bets
 }
 
-/// Only bet on odds=2 pirates where model says p > threshold.
-fn make_bets_2s_filtered(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-    min_prob: f64,
-) -> Vec<Bet> {
-    let mut bets: Vec<Bet> = Vec::new();
-    for (ai, arena) in arenas.iter().enumerate() {
-        for pirate in &arena.pirates {
-            if pirate.odds == 2 {
-                let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                if prob >= min_prob {
-                    bets.push(Bet {
-                        pirate_names: vec![pirate.name.clone()],
-                        win_probability: prob,
-                        payout: 2,
-                    });
-                }
+fn clamp_and_redistribute(probs: &[f64; 4], intervals: &[(f64, f64); 4]) -> [f64; 4] {
+    let mut p = *probs;
+    let mut fixed = [false; 4];
+    for _ in 0..20 {
+        let mut changed = false;
+        for i in 0..4 {
+            if fixed[i] { continue; }
+            if p[i] < intervals[i].0 {
+                p[i] = intervals[i].0;
+                fixed[i] = true;
+                changed = true;
+            } else if p[i] > intervals[i].1 {
+                p[i] = intervals[i].1;
+                fixed[i] = true;
+                changed = true;
             }
         }
+        let fixed_sum: f64 = (0..4).filter(|&i| fixed[i]).map(|i| p[i]).sum();
+        let free_idx: Vec<usize> = (0..4).filter(|&i| !fixed[i]).collect();
+        let free_sum: f64 = free_idx.iter().map(|&i| p[i]).sum();
+        if !free_idx.is_empty() && free_sum > 0.0 {
+            let target = 1.0 - fixed_sum;
+            let scale = target / free_sum;
+            for &i in &free_idx {
+                p[i] *= scale;
+            }
+        }
+        if !changed { break; }
     }
-    bets.sort_by(|a, b| b.win_probability.partial_cmp(&a.win_probability).unwrap());
-    bets.truncate(10);
-    bets
+    p
 }
 
-/// Top-10 EV but excluding any bet that contains an odds=2 pirate.
-fn make_bets_no_2s(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-) -> Vec<Bet> {
-    let n = arenas.len();
-    let mut possible_bets: Vec<Bet> = Vec::new();
+/// Compute clamped win probabilities for an arena using odds intervals.
+fn arena_win_probs_clamped(
+    pirates: &[&Pirate],
+    course_indices: &[usize],
+    roll_table: &[Vec<f64>],
+    opening_odds: &[u32],
+) -> HashMap<String, f64> {
+    let pmfs: Vec<Vec<f64>> = pirates.iter()
+        .map(|p| pirate_score_pmf(p, course_indices, roll_table))
+        .collect();
+    let pmf_refs: [&[f64]; 4] = [&pmfs[0], &pmfs[1], &pmfs[2], &pmfs[3]];
+    let raw_probs = win_probs_from_pmfs(pmf_refs);
 
-    for mask in 1u32..(1 << n) {
-        let arena_indices: Vec<usize> = (0..n).filter(|&i| mask & (1 << i) != 0).collect();
-        let pirate_options: Vec<&[HistPirate]> = arena_indices.iter()
-            .map(|&i| arenas[i].pirates.as_slice())
-            .collect();
+    let intervals: [(f64, f64); 4] = std::array::from_fn(|i| odds_prob_bounds(opening_odds[i]));
+    let clamped = clamp_and_redistribute(&raw_probs, &intervals);
 
-        let mut combo_indices = vec![0usize; arena_indices.len()];
-        loop {
-            // Skip if any pirate has odds=2
-            let has_2 = arena_indices.iter().enumerate().any(|(j, &_ai)| {
-                pirate_options[j][combo_indices[j]].odds == 2
-            });
-
-            if !has_2 {
-                let mut win_prob = 1.0;
-                let mut payout = 1u32;
-                let mut pirate_names = Vec::with_capacity(arena_indices.len());
-
-                for (j, &ai) in arena_indices.iter().enumerate() {
-                    let pirate = &pirate_options[j][combo_indices[j]];
-                    win_prob *= arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                    payout = (payout * pirate.odds).min(MAX_PAYOUT);
-                    pirate_names.push(pirate.name.clone());
-                }
-
-                possible_bets.push(Bet {
-                    pirate_names,
-                    win_probability: win_prob,
-                    payout,
-                });
-            }
-
-            let mut carry = true;
-            for j in (0..combo_indices.len()).rev() {
-                if carry {
-                    combo_indices[j] += 1;
-                    if combo_indices[j] >= pirate_options[j].len() {
-                        combo_indices[j] = 0;
-                    } else {
-                        carry = false;
-                    }
-                }
-            }
-            if carry { break; }
-        }
+    let mut result = HashMap::new();
+    for (i, p) in pirates.iter().enumerate() {
+        result.insert(p.name.clone(), clamped[i]);
     }
-
-    possible_bets.sort_by(|a, b| {
-        let ev_a = a.win_probability * a.payout as f64;
-        let ev_b = b.win_probability * b.payout as f64;
-        ev_b.partial_cmp(&ev_a).unwrap()
-    });
-    possible_bets.truncate(10);
-    possible_bets
-}
-
-/// Parlays using only odds=2 pirates. Always produce 10 bets.
-/// Enumerate all combinations of odds=2 pirates across arenas (singles + parlays),
-/// rank by EV, take top 10.
-fn make_bets_2s_parlays(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-) -> Vec<Bet> {
-    // Collect odds=2 pirates per arena: (arena_index, pirate_name, prob, odds)
-    let mut twos_by_arena: Vec<Vec<(usize, String, f64)>> = Vec::new();
-    for (ai, arena) in arenas.iter().enumerate() {
-        let mut arena_twos = Vec::new();
-        for pirate in &arena.pirates {
-            if pirate.odds == 2 {
-                let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                arena_twos.push((ai, pirate.name.clone(), prob));
-            }
-        }
-        if !arena_twos.is_empty() {
-            twos_by_arena.push(arena_twos);
-        }
-    }
-
-    let n = twos_by_arena.len();
-    if n == 0 {
-        return Vec::new();
-    }
-
-    let mut possible_bets: Vec<Bet> = Vec::new();
-
-    // Enumerate all subsets of arenas that have odds=2 pirates
-    for mask in 1u32..(1 << n) {
-        let arena_indices: Vec<usize> = (0..n).filter(|&i| mask & (1 << i) != 0).collect();
-
-        // For each subset, enumerate all combinations of odds=2 pirates
-        let mut combo_indices = vec![0usize; arena_indices.len()];
-        loop {
-            let mut win_prob = 1.0;
-            let mut payout = 1u32;
-            let mut pirate_names = Vec::with_capacity(arena_indices.len());
-
-            for (j, &ai) in arena_indices.iter().enumerate() {
-                let (_, ref name, prob) = twos_by_arena[ai][combo_indices[j]];
-                win_prob *= prob;
-                payout = (payout * 2).min(MAX_PAYOUT);
-                pirate_names.push(name.clone());
-            }
-
-            possible_bets.push(Bet {
-                pirate_names,
-                win_probability: win_prob,
-                payout,
-            });
-
-            let mut carry = true;
-            for j in (0..combo_indices.len()).rev() {
-                if carry {
-                    combo_indices[j] += 1;
-                    if combo_indices[j] >= twos_by_arena[arena_indices[j]].len() {
-                        combo_indices[j] = 0;
-                    } else {
-                        carry = false;
-                    }
-                }
-            }
-            if carry { break; }
-        }
-    }
-
-    possible_bets.sort_by(|a, b| {
-        let ev_a = a.win_probability * a.payout as f64;
-        let ev_b = b.win_probability * b.payout as f64;
-        ev_b.partial_cmp(&ev_a).unwrap()
-    });
-    possible_bets.truncate(10);
-    possible_bets
-}
-
-/// Filtered 2:1 parlays: only use odds=2 pirates where model p >= min_prob,
-/// only keep bets with EV >= 1.0, take up to 10 best by EV.
-fn make_bets_2s_parlays_filtered(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-    min_prob: f64,
-) -> Vec<Bet> {
-    // Collect odds=2 pirates per arena, filtered by min_prob
-    let mut twos_by_arena: Vec<Vec<(usize, String, f64)>> = Vec::new();
-    for (ai, arena) in arenas.iter().enumerate() {
-        let mut arena_twos = Vec::new();
-        for pirate in &arena.pirates {
-            if pirate.odds == 2 {
-                let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                if prob >= min_prob {
-                    arena_twos.push((ai, pirate.name.clone(), prob));
-                }
-            }
-        }
-        if !arena_twos.is_empty() {
-            twos_by_arena.push(arena_twos);
-        }
-    }
-
-    let n = twos_by_arena.len();
-    if n == 0 {
-        return Vec::new();
-    }
-
-    let mut possible_bets: Vec<Bet> = Vec::new();
-
-    for mask in 1u32..(1 << n) {
-        let arena_indices: Vec<usize> = (0..n).filter(|&i| mask & (1 << i) != 0).collect();
-
-        let mut combo_indices = vec![0usize; arena_indices.len()];
-        loop {
-            let mut win_prob = 1.0;
-            let mut payout = 1u32;
-            let mut pirate_names = Vec::with_capacity(arena_indices.len());
-
-            for (j, &ai) in arena_indices.iter().enumerate() {
-                let (_, ref name, prob) = twos_by_arena[ai][combo_indices[j]];
-                win_prob *= prob;
-                payout = (payout * 2).min(MAX_PAYOUT);
-                pirate_names.push(name.clone());
-            }
-
-            let ev = win_prob * payout as f64;
-            if ev >= 1.0 {
-                possible_bets.push(Bet {
-                    pirate_names,
-                    win_probability: win_prob,
-                    payout,
-                });
-            }
-
-            let mut carry = true;
-            for j in (0..combo_indices.len()).rev() {
-                if carry {
-                    combo_indices[j] += 1;
-                    if combo_indices[j] >= twos_by_arena[arena_indices[j]].len() {
-                        combo_indices[j] = 0;
-                    } else {
-                        carry = false;
-                    }
-                }
-            }
-            if carry { break; }
-        }
-    }
-
-    possible_bets.sort_by(|a, b| {
-        let ev_a = a.win_probability * a.payout as f64;
-        let ev_b = b.win_probability * b.payout as f64;
-        ev_b.partial_cmp(&ev_a).unwrap()
-    });
-    possible_bets.truncate(10);
-    possible_bets
-}
-
-/// Anchor on good 2:1 pirates, pad with any other pirates to boost payout.
-/// Every bet must include at least one odds=2 pirate with model p >= min_prob.
-/// Non-2:1 pirates can be added freely to multiply payout.
-/// Only keep bets with EV >= 1.0. Take top 10 by EV.
-fn make_bets_anchored_2s(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-    min_prob: f64,
-) -> Vec<Bet> {
-    let n = arenas.len();
-
-    // Which arenas have a "good" 2:1 pirate?
-    let mut good_2_arenas: Vec<bool> = vec![false; n];
-    for (ai, arena) in arenas.iter().enumerate() {
-        for pirate in &arena.pirates {
-            if pirate.odds == 2 {
-                let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                if prob >= min_prob {
-                    good_2_arenas[ai] = true;
-                }
-            }
-        }
-    }
-
-    // Need at least one arena with a good 2:1
-    if !good_2_arenas.iter().any(|&x| x) {
-        return Vec::new();
-    }
-
-    let mut possible_bets: Vec<Bet> = Vec::new();
-
-    for mask in 1u32..(1 << n) {
-        let arena_indices: Vec<usize> = (0..n).filter(|&i| mask & (1 << i) != 0).collect();
-
-        // Must include at least one arena that has a good 2:1
-        if !arena_indices.iter().any(|&i| good_2_arenas[i]) {
-            continue;
-        }
-
-        let pirate_options: Vec<&[HistPirate]> = arena_indices.iter()
-            .map(|&i| arenas[i].pirates.as_slice())
-            .collect();
-
-        let mut combo_indices = vec![0usize; arena_indices.len()];
-        loop {
-            // Check: at least one pirate in this combo must be a good 2:1
-            let has_good_2 = arena_indices.iter().enumerate().any(|(j, &ai)| {
-                let pirate = &pirate_options[j][combo_indices[j]];
-                pirate.odds == 2 && {
-                    let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                    prob >= min_prob
-                }
-            });
-
-            if has_good_2 {
-                let mut win_prob = 1.0;
-                let mut payout = 1u32;
-                let mut pirate_names = Vec::with_capacity(arena_indices.len());
-
-                for (j, &ai) in arena_indices.iter().enumerate() {
-                    let pirate = &pirate_options[j][combo_indices[j]];
-                    win_prob *= arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                    payout = (payout * pirate.odds).min(MAX_PAYOUT);
-                    pirate_names.push(pirate.name.clone());
-                }
-
-                let ev = win_prob * payout as f64;
-                if ev >= 1.0 {
-                    possible_bets.push(Bet {
-                        pirate_names,
-                        win_probability: win_prob,
-                        payout,
-                    });
-                }
-            }
-
-            let mut carry = true;
-            for j in (0..combo_indices.len()).rev() {
-                if carry {
-                    combo_indices[j] += 1;
-                    if combo_indices[j] >= pirate_options[j].len() {
-                        combo_indices[j] = 0;
-                    } else {
-                        carry = false;
-                    }
-                }
-            }
-            if carry { break; }
-        }
-    }
-
-    possible_bets.sort_by(|a, b| {
-        let ev_a = a.win_probability * a.payout as f64;
-        let ev_b = b.win_probability * b.payout as f64;
-        ev_b.partial_cmp(&ev_a).unwrap()
-    });
-    possible_bets.truncate(10);
-    possible_bets
+    result
 }
 
 /// Effective payout: current_odds if available, else opening odds.
@@ -829,37 +523,6 @@ fn make_bets_current_exploit_floor(
     possible_bets
 }
 
-/// Singles-only on pirates where current_odds > opening_odds (for comparison).
-fn make_bets_current_jump_singles(
-    arena_probs: &[HashMap<String, f64>],
-    arenas: &[HistArena],
-    min_jump: u32,
-) -> Vec<Bet> {
-    let mut bets: Vec<Bet> = Vec::new();
-    for (ai, arena) in arenas.iter().enumerate() {
-        for pirate in &arena.pirates {
-            let cur = eff_odds(pirate);
-            if cur >= pirate.odds + min_jump {
-                let prob = arena_probs[ai].get(&pirate.name).copied().unwrap_or(0.0);
-                let ev = prob * cur as f64;
-                if ev >= 1.0 {
-                    bets.push(Bet {
-                        pirate_names: vec![pirate.name.clone()],
-                        win_probability: prob,
-                        payout: cur,
-                    });
-                }
-            }
-        }
-    }
-    bets.sort_by(|a, b| {
-        let ev_a = a.win_probability * a.payout as f64;
-        let ev_b = b.win_probability * b.payout as f64;
-        ev_b.partial_cmp(&ev_a).unwrap()
-    });
-    bets.truncate(10);
-    bets
-}
 
 fn bet_won(bet: &Bet, arenas: &[HistArena]) -> bool {
     let winners: std::collections::HashSet<&str> = arenas.iter()
@@ -871,21 +534,22 @@ fn bet_won(bet: &Bet, arenas: &[HistArena]) -> bool {
 struct StrategyResult {
     total_wagered: u32,
     total_payout: u32,
-    total_ev: f64,
+    total_model_ev: f64,
     num_days: u32,
     num_bets: u32,
+    bust_days: u32,
     day_profits: Vec<i32>, // per-day net profit for variance calc
 }
 
 impl StrategyResult {
     fn new() -> Self {
         StrategyResult {
-            total_wagered: 0, total_payout: 0, total_ev: 0.0,
-            num_days: 0, num_bets: 0, day_profits: Vec::new(),
+            total_wagered: 0, total_payout: 0, total_model_ev: 0.0,
+            num_days: 0, num_bets: 0, bust_days: 0, day_profits: Vec::new(),
         }
     }
 
-    fn add_day(&mut self, bets: &[Bet], arenas: &[HistArena]) {
+    fn add_day(&mut self, bets: &[Bet], arenas: &[HistArena], arena_probs: &[HashMap<String, f64>]) {
         if bets.is_empty() { return; }
         self.num_days += 1;
         let wagered = bets.len() as u32;
@@ -894,12 +558,21 @@ impl StrategyResult {
 
         let mut day_payout = 0u32;
         for b in bets {
-            self.total_ev += b.win_probability * b.payout as f64;
+            // Compute model-based EV using actual model probabilities
+            let model_win_prob: f64 = b.pirate_names.iter().map(|name| {
+                arena_probs.iter()
+                    .filter_map(|ap| ap.get(name))
+                    .next()
+                    .copied()
+                    .unwrap_or(0.0)
+            }).product();
+            self.total_model_ev += model_win_prob * b.payout as f64;
             if bet_won(b, arenas) {
                 day_payout += b.payout;
             }
         }
         self.total_payout += day_payout;
+        if day_payout == 0 { self.bust_days += 1; }
         self.day_profits.push(day_payout as i32 - wagered as i32);
     }
 
@@ -910,12 +583,9 @@ impl StrategyResult {
         }
         let roi = (self.total_payout as f64 - self.total_wagered as f64)
             / self.total_wagered as f64 * 100.0;
-        let avg_ev_per_bet = self.total_ev / self.num_bets as f64;
+        let expected_roi = (self.total_model_ev - self.total_wagered as f64)
+            / self.total_wagered as f64 * 100.0;
         let avg_bets_per_day = self.num_bets as f64 / self.num_days as f64;
-
-        // Per-bet ROI standard error
-        let profit = self.total_payout as f64 - self.total_wagered as f64;
-        let avg_profit_per_bet = profit / self.num_bets as f64;
 
         // Compute variance of per-bet returns
         // We approximate using per-day profits scaled by bets per day
@@ -929,8 +599,10 @@ impl StrategyResult {
 
         let profit_total = self.total_payout as i32 - self.total_wagered as i32;
 
-        println!("  {:<40} {:>5} days {:>6} bets | ROI {:>+6.1}% +/- {:.1}% | EV/bet {:.3} | profit {:>+6}",
-            label, self.num_days, self.num_bets, roi, se_roi * 1.96, avg_ev_per_bet, profit_total);
+        let bust_pct = self.bust_days as f64 / self.num_days as f64 * 100.0;
+
+        println!("  {:<40} {:>5} days {:>6} bets | expected {:>+6.1}% | actual {:>+6.1}% +/- {:.1}% | bust {:.1}% | profit {:>+6}",
+            label, self.num_days, self.num_bets, expected_roi, roi, se_roi * 1.96, bust_pct, profit_total);
     }
 }
 
@@ -960,7 +632,7 @@ fn main() {
     let max_upper = 200;
     let roll_table: Vec<Vec<f64>> = (0..=max_upper).map(|d| dice_sum_pmf(N_ROLLS, d as u32)).collect();
 
-    // Compute arena probs for all days in parallel
+    // Compute arena probs for all days in parallel (clamped by odds intervals)
     let day_probs: Vec<Vec<HashMap<String, f64>>> = historical.par_iter().map(|day_arenas| {
         day_arenas.iter().map(|arena| {
             let arena_pirates: Vec<&Pirate> = arena.pirates.iter()
@@ -970,17 +642,57 @@ fn main() {
             let course_indices: Vec<usize> = arena.foods.iter()
                 .filter_map(|food| course_map.get(food.as_str()).copied())
                 .collect();
-            arena_win_probs(&arena_pirates, &course_indices, &roll_table)
+            let opening_odds: Vec<u32> = arena.pirates.iter().map(|hp| hp.odds).collect();
+            arena_win_probs_clamped(&arena_pirates, &course_indices, &roll_table, &opening_odds)
         }).collect()
     }).collect();
 
-    // Run strategies
-    let mut strat_comb_55_j1 = StrategyResult::new();
+    // Run strategy and analyze worst-pirate inclusion
+    let mut strat = StrategyResult::new();
+    let mut worst_pirate_bets = 0u32;
+    let mut total_selections = 0u32; // total (bet, arena) selections
+    let mut worst_rank_counts = [0u32; 4]; // rank 0=best, 3=worst
 
-    for (day_arenas, probs) in historical.iter().zip(day_probs.iter()) {
-        strat_comb_55_j1.add_day(&make_bets_current_exploit(probs, day_arenas, 0.55, 1), day_arenas);
+    for (i, day_arenas) in historical.iter().enumerate() {
+        let bets = make_bets_current_exploit_floor(&day_probs[i], day_arenas, 0.55, 1);
+        strat.add_day(&bets, day_arenas, &day_probs[i]);
+
+        // For each arena, rank pirates by model probability
+        let mut arena_rankings: Vec<Vec<(String, usize)>> = Vec::new(); // name -> rank (0=best)
+        for (ai, arena) in day_arenas.iter().enumerate() {
+            let mut pirate_probs: Vec<(String, f64)> = arena.pirates.iter().map(|hp| {
+                let prob = day_probs[i][ai].get(&hp.name).copied().unwrap_or(0.0);
+                (hp.name.clone(), prob)
+            }).collect();
+            pirate_probs.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            let rankings: Vec<(String, usize)> = pirate_probs.iter().enumerate()
+                .map(|(rank, (name, _))| (name.clone(), rank)).collect();
+            arena_rankings.push(rankings);
+        }
+
+        for bet in &bets {
+            for name in &bet.pirate_names {
+                for (ai, rankings) in arena_rankings.iter().enumerate() {
+                    if let Some((_, rank)) = rankings.iter().find(|(n, _)| n == name) {
+                        worst_rank_counts[*rank] += 1;
+                        total_selections += 1;
+                        if *rank == 3 {
+                            worst_pirate_bets += 1;
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    println!("=== STRATEGY (Model 4) ===\n");
-    strat_comb_55_j1.print("2:1 p>=0.55 OR jump>=1, cur odds");
+    println!("=== STRATEGY (Model 4, odds-clamped, floor for jumped) ===\n");
+    strat.print("floor for jumped, model rest");
+
+    println!("\n=== PIRATE RANK IN SELECTED BETS ===\n");
+    println!("  Total pirate selections: {}", total_selections);
+    for rank in 0..4 {
+        let pct = worst_rank_counts[rank] as f64 / total_selections as f64 * 100.0;
+        let label = match rank { 0 => "best", 1 => "2nd", 2 => "3rd", 3 => "worst", _ => "" };
+        println!("  Rank {} ({}):  {:>5} ({:.1}%)", rank + 1, label, worst_rank_counts[rank], pct);
+    }
 }
