@@ -70,11 +70,9 @@
 <h1>Food Club Bet Advisor</h1>
 
 <div class="controls">
-  <label>Round: <input type="number" id="roundInput" value="" placeholder="auto"></label>
-  <label>Bet Amount: <input type="number" id="betAmountInput" value="17682"></label>
+  <label>Bet Amount: <input type="number" id="betAmountInput"></label>
   <label>Max Payout: <input type="number" id="maxPayoutInput" value="56"></label>
-  <button onclick="loadRound()">Load Round</button>
-  <button onclick="loadLatest()">Latest</button>
+  <button onclick="loadLatest()">Reload</button>
 </div>
 
 <div id="status" class="status"></div>
@@ -101,7 +99,6 @@ async function loadLatest() {
     const resp = await fetch('https://cdn.neofood.club/current_round.txt');
     if (!resp.ok) throw new Error(`Failed to fetch current round (${resp.status})`);
     const roundNum = parseInt((await resp.text()).trim());
-    document.getElementById('roundInput').value = roundNum;
     const data = await fetchRound(roundNum);
     processRound(data);
   } catch (e) {
@@ -109,17 +106,12 @@ async function loadLatest() {
   }
 }
 
-async function loadRound() {
-  const input = document.getElementById('roundInput').value;
-  if (!input) { loadLatest(); return; }
-  const roundNum = parseInt(input);
-  setStatus(`Loading round ${roundNum}...`);
-  try {
-    const data = await fetchRound(roundNum);
-    processRound(data);
-  } catch (e) {
-    setStatus(e.message, true);
-  }
+function defaultBetAmount() {
+  // Today's value (2026-05-03 UTC) is 16560, increasing by 2 each day.
+  const base = Date.UTC(2026, 4, 3);
+  const now = Date.now();
+  const days = Math.floor((now - base) / 86400000);
+  return 16560 + 2 * days;
 }
 
 function processRound(roundData) {
@@ -338,7 +330,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '</tr>';
 
   // Make Bet row
-  const maxBet = parseInt(document.getElementById('betAmountInput').value) || 17682;
+  const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount();
   html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa"></td>';
   html += '<td colspan="6"></td>';
   for (let b = 0; b < numBets; b++) {
@@ -384,6 +376,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
 window.addEventListener('load', () => {
   getRollTable();
+  document.getElementById('betAmountInput').value = defaultBetAmount();
   loadLatest();
 });
 </script>
