@@ -107,11 +107,11 @@ async function loadLatest() {
 }
 
 function defaultBetAmount() {
-  // Today's value (2026-05-03 UTC) is 16560, increasing by 2 each day.
+  // Today's value (2026-05-03 UTC) is 16558, increasing by 2 each day.
   const base = Date.UTC(2026, 4, 3);
   const now = Date.now();
   const days = Math.floor((now - base) / 86400000);
-  return 16560 + 2 * days;
+  return 16558 + 2 * days;
 }
 
 function processRound(roundData) {
