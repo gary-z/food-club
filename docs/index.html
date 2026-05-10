@@ -110,7 +110,7 @@ async function loadLatest() {
 
 function defaultBetAmount(roundNum) {
   // Round 9864 has a max bet of 16570; max bet increases by 2 each round.
-  return 16570 + 2 * (roundNum - 9864);
+  return 16570 + 2 * (roundNum - 9864) - 2;
 }
 
 function processRound(roundData) {
