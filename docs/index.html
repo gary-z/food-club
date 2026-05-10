@@ -99,6 +99,8 @@ async function loadLatest() {
     const resp = await fetch('https://cdn.neofood.club/current_round.txt');
     if (!resp.ok) throw new Error(`Failed to fetch current round (${resp.status})`);
     const roundNum = parseInt((await resp.text()).trim());
+    const betInput = document.getElementById('betAmountInput');
+    if (!betInput.value) betInput.value = defaultBetAmount(roundNum);
     const data = await fetchRound(roundNum);
     processRound(data);
   } catch (e) {
@@ -106,12 +108,9 @@ async function loadLatest() {
   }
 }
 
-function defaultBetAmount() {
-  // Today's value (2026-05-03 UTC) is 16560, increasing by 2 each day.
-  const base = Date.UTC(2026, 4, 3);
-  const now = Date.now();
-  const days = Math.floor((now - base) / 86400000);
-  return 16560 + 2 * days;
+function defaultBetAmount(roundNum) {
+  // Round 9864 has a max bet of 16570; max bet increases by 2 each round.
+  return 16570 + 2 * (roundNum - 9864);
 }
 
 function processRound(roundData) {
@@ -330,7 +329,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '</tr>';
 
   // Make Bet row
-  const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount();
+  const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
   html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa"></td>';
   html += '<td colspan="6"></td>';
   for (let b = 0; b < numBets; b++) {
@@ -376,7 +375,6 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
 window.addEventListener('load', () => {
   getRollTable();
-  document.getElementById('betAmountInput').value = defaultBetAmount();
   loadLatest();
 });
 </script>
