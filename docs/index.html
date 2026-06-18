@@ -301,24 +301,21 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += `<tr class="arena-sep"><td colspan="${9 + numBets}"></td></tr>`;
 
   // Odds row
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa">Odds</td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="8"></td><td class="left" style="color:#aaa">Odds</td>';
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${bets[b].payout}:1</td>`;
   }
   html += '</tr>';
 
   // Prob row
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa">Prob.</td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="8"></td><td class="left" style="color:#aaa">Prob.</td>';
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
   html += '</tr>';
 
   // Net Expected row
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa">Net Expected</td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="8"></td><td class="left" style="color:#aaa">Net Expected</td>';
   let totalNet = 0;
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
