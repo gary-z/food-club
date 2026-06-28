@@ -24,7 +24,6 @@
 
   /* Arena name cell */
   .arena-name { color: #e94560; font-weight: bold; text-align: left !important; vertical-align: middle; }
-  .arena-ratio { color: #aaa; font-family: monospace; vertical-align: middle; }
 
   /* Arena separator */
   .arena-sep td { border-bottom: 2px solid #333; height: 4px; padding: 0; }
@@ -198,7 +197,6 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
   let html = '<table class="main-table"><thead><tr>';
   html += '<th class="left">Arena</th>';
-  html += '<th>Ratio</th>';
   html += '<th class="left">Pirate</th>';
   html += '<th>Prob</th>';
   html += '<th>Edge</th>';
@@ -214,18 +212,6 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   for (let a = 0; a < 5; a++) {
     const arenaNames = ["Shipwreck", "Lagoon", "Treasure", "Hidden", "Harpoon"];
 
-    // Compute arena-level expected ratio (best 2:1 edge)
-    let arenaRatio = 0;
-    for (let p = 0; p < 4; p++) {
-      if (arenas[a].openingOdds[p] === 2) {
-        const edge = probs[a][p] * arenas[a].currentOdds[p] - 1;
-        arenaRatio = Math.max(arenaRatio, edge);
-      }
-    }
-    const ratioStr = arenaRatio !== 0
-      ? (arenaRatio >= 0 ? '+' : '') + (arenaRatio * 100).toFixed(1) + '%'
-      : '';
-
     for (let p = 0; p < 4; p++) {
       const pid = arenas[a].pirateIds[p];
       const pirate = PIRATES[pid - 1];
@@ -240,7 +226,6 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
       // Arena name (rowspan on first pirate)
       if (p === 0) {
         html += `<td class="arena-name" rowspan="4">${arenaNames[a]}</td>`;
-        html += `<td class="arena-ratio" rowspan="4">${ratioStr}</td>`;
       }
 
       // Pirate name tag
@@ -293,32 +278,29 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
     // Arena separator
     if (a < 4) {
-      html += `<tr class="arena-sep"><td colspan="${9 + numBets}"></td></tr>`;
+      html += `<tr class="arena-sep"><td colspan="${8 + numBets}"></td></tr>`;
     }
   }
 
   // Bet summary rows
-  html += `<tr class="arena-sep"><td colspan="${9 + numBets}"></td></tr>`;
+  html += `<tr class="arena-sep"><td colspan="${8 + numBets}"></td></tr>`;
 
   // Odds row
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa">Odds</td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Odds</td>';
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${bets[b].payout}:1</td>`;
   }
   html += '</tr>';
 
   // Prob row
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa">Prob.</td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Prob.</td>';
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
   html += '</tr>';
 
   // Net Expected row
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa">Net Expected</td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Net Expected</td>';
   let totalNet = 0;
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
@@ -330,8 +312,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
   // Make Bet row
   const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
-  html += '<tr><td class="left" colspan="2"></td><td class="left" style="color:#aaa"></td>';
-  html += '<td colspan="6"></td>';
+  html += '<tr><td colspan="8"></td>';
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
