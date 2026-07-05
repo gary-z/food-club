@@ -136,25 +136,21 @@ function makeArena(pirateIds, foodIds, openingOdds, currentOdds) {
   }
 }
 
-// Test 3: Non-anchor non-jumped pirate should use model probability
+// Test 3: Non-anchor non-jumped positive-EV pirates should be allowed
 {
-  // Arena where pirate 1 is not jumped and not 2:1
+  // Pirate 1 is not jumped and not 2:1, but has positive EV at 5:1 odds.
   const arenas = [makeArena([1, 2, 3, 4], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    [3, 5, 7, 13], [5, 5, 7, 13])];
-  const probs = computeAllProbs(arenas);
+    [3, 5, 7, 13], [3, 5, 7, 13])];
+  const probs = [[0.10, 0.25, 0.10, 0.05]];
 
   const bets = generateBets(arenas, probs);
-  // Any bet including pirate 1 (opening=5, current=5, not jumped) as part of a multi-arena
-  // should use model prob for that pirate
-  const betsWithP1Only = bets.filter(b =>
+  const betWithP1Only = bets.find(b =>
     b.selections.length === 1 && b.selections[0].arena === 0 && b.selections[0].pirateIdx === 1);
 
-  // Pirate 1 is not an anchor (opening=5, current=5, not jumped), so single-pirate bets
-  // must also contain an anchor. A single-bet with only pirate 1 should NOT exist.
-  if (betsWithP1Only.length === 0) {
-    passed++;
+  if (betWithP1Only) {
+    check('non-anchor positive-EV uses model prob', betWithP1Only.winProb, probs[0][1], 1e-10);
   } else {
-    console.log('  FAIL: non-anchor pirate appears alone in a bet');
+    console.log('  FAIL: non-anchor positive-EV pirate was excluded');
     failed++;
   }
 }
@@ -179,28 +175,17 @@ function makeArena(pirateIds, foodIds, openingOdds, currentOdds) {
   }
 }
 
-// Test 5: All bets must have at least one anchor
+// Test 5: Positive-EV bets can be returned even when no anchors exist
 {
   const arenas = [makeArena([1, 2, 3, 4], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    [3, 5, 7, 13], [5, 5, 7, 13])];
-  const probs = computeAllProbs(arenas);
+    [3, 5, 7, 13], [3, 5, 7, 13])];
+  const probs = [[0.10, 0.25, 0.10, 0.05]];
   const bets = generateBets(arenas, probs);
 
-  let allHaveAnchor = true;
-  for (const bet of bets) {
-    const hasAnchor = bet.selections.some(s => {
-      const openOdds = arenas[s.arena].openingOdds[s.pirateIdx];
-      const curOdds = arenas[s.arena].currentOdds[s.pirateIdx];
-      const isJump = curOdds >= openOdds + 1;
-      const is2sAnchor = openOdds === 2 && probs[s.arena][s.pirateIdx] >= 0.55;
-      return isJump || is2sAnchor;
-    });
-    if (!hasAnchor) { allHaveAnchor = false; break; }
-  }
-  if (allHaveAnchor) {
+  if (bets.length > 0 && bets.some(b => b.ev >= 1.0)) {
     passed++;
   } else {
-    console.log('  FAIL: found bet without anchor');
+    console.log('  FAIL: no-anchor positive-EV bet was not returned');
     failed++;
   }
 }
@@ -229,7 +214,7 @@ function makeArena(pirateIds, foodIds, openingOdds, currentOdds) {
   const arenas = [makeArena([1, 2, 3, 4], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     [2, 5, 7, 13], [1, 5, 7, 13])];
   const probs = [[0.55, 0.20, 0.15, 0.10]];
-  const bets = generateBets(arenas, probs, { maxBets: 3, min2sProb: 0.55 });
+  const bets = generateBets(arenas, probs, { maxBets: 3, maxPayoutRatio: 1 });
 
   if (bets.length === 0) {
     passed++;

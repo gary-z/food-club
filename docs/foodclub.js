@@ -249,20 +249,18 @@ function computeAllProbs(arenas) {
 
 // ==================== Betting Strategy ====================
 
-// Generate bets using the current_exploit strategy:
-// Anchors: opening_odds=2 with model p >= min2sProb, OR current_odds >= opening + minJump
+// Generate bets by enumerating arena combinations.
 // All payouts use current odds. Only keep positive-EV bets and return up to maxBets.
 function generateBets(arenas, probs, options = {}) {
   const {
     maxBets = 10,
     maxPayoutRatio = 60, // max payout multiplier per bet
-    min2sProb = 0.55,
     minJump = 1,
   } = options;
 
   const n = arenas.length;
 
-  // Precompute anchors and jump status
+  // Precompute jumped odds status
   const pirateIsJump = arenas.map((arena, ai) =>
     arena.pirateIds.map((pid, pi) => {
       const curOdds = arena.currentOdds[pi];
@@ -270,16 +268,6 @@ function generateBets(arenas, probs, options = {}) {
       return curOdds >= openOdds + minJump;
     })
   );
-
-  const pirateIsAnchor = arenas.map((arena, ai) =>
-    arena.pirateIds.map((pid, pi) => {
-      const prob = probs[ai][pi];
-      const openOdds = arena.openingOdds[pi];
-      return (openOdds === 2 && prob >= min2sProb) || pirateIsJump[ai][pi];
-    })
-  );
-
-  const hasAnchor = pirateIsAnchor.map(a => a.some(x => x));
 
   const possibleBets = [];
 
@@ -289,43 +277,35 @@ function generateBets(arenas, probs, options = {}) {
       if (mask & (1 << i)) arenaIndices.push(i);
     }
 
-    // Must include at least one arena with an anchor
-    if (!arenaIndices.some(i => hasAnchor[i])) continue;
-
     // Enumerate all pirate combinations for selected arenas
     const comboIndices = new Array(arenaIndices.length).fill(0);
     while (true) {
-      // Check: at least one pirate in combo is an anchor
-      const comboHasAnchor = arenaIndices.some((ai, j) => pirateIsAnchor[ai][comboIndices[j]]);
+      let winProb = 1;
+      let payout = 1;
+      const selections = [];
 
-      if (comboHasAnchor) {
-        let winProb = 1;
-        let payout = 1;
-        const selections = [];
+      for (let j = 0; j < arenaIndices.length; j++) {
+        const ai = arenaIndices[j];
+        const pi = comboIndices[j];
+        // Floor-for-jumped: use odds-maker floor 1/(opening+1) for jumped pirates
+        const prob = pirateIsJump[ai][pi]
+          ? 1.0 / (arenas[ai].openingOdds[pi] + 1)
+          : probs[ai][pi];
+        winProb *= prob;
+        payout = Math.min(payout * arenas[ai].currentOdds[pi], maxPayoutRatio);
+        selections.push({
+          arena: ai,
+          pirateIdx: pi,
+          pirateId: arenas[ai].pirateIds[pi],
+          pirateName: PIRATES[arenas[ai].pirateIds[pi] - 1].name,
+          openingOdds: arenas[ai].openingOdds[pi],
+          currentOdds: arenas[ai].currentOdds[pi],
+        });
+      }
 
-        for (let j = 0; j < arenaIndices.length; j++) {
-          const ai = arenaIndices[j];
-          const pi = comboIndices[j];
-          // Floor-for-jumped: use odds-maker floor 1/(opening+1) for jumped pirates
-          const prob = pirateIsJump[ai][pi]
-            ? 1.0 / (arenas[ai].openingOdds[pi] + 1)
-            : probs[ai][pi];
-          winProb *= prob;
-          payout = Math.min(payout * arenas[ai].currentOdds[pi], maxPayoutRatio);
-          selections.push({
-            arena: ai,
-            pirateIdx: pi,
-            pirateId: arenas[ai].pirateIds[pi],
-            pirateName: PIRATES[arenas[ai].pirateIds[pi] - 1].name,
-            openingOdds: arenas[ai].openingOdds[pi],
-            currentOdds: arenas[ai].currentOdds[pi],
-          });
-        }
-
-        const ev = winProb * payout;
-        if (ev >= 1.0) {
-          possibleBets.push({ selections, winProb, payout, ev });
-        }
+      const ev = winProb * payout;
+      if (ev >= 1.0) {
+        possibleBets.push({ selections, winProb, payout, ev });
       }
 
       // Advance combo indices
