@@ -346,7 +346,8 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Summary
   const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
   html += '<table class="summary-table">';
-  html += `<tr><td class="label">Total Net Expected:</td><td class="value ev-positive">+${totalNet.toFixed(2)}</td></tr>`;
+  const totalNetCls = totalNet >= 0 ? 'ev-positive' : 'payout-neg';
+  html += `<tr><td class="label">Total Net Expected:</td><td class="value ${totalNetCls}">${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}</td></tr>`;
   html += `<tr><td class="label">Bust Chance:</td><td class="value">${(bustProb * 100).toFixed(1)}%</td></tr>`;
   html += `<tr><td class="label">NeoFood Club:</td><td class="value"><a href="${nfcUrl}" target="_blank" style="color:#5588cc">${nfcUrl}</a></td></tr>`;
   html += '</table>';

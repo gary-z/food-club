@@ -251,7 +251,7 @@ function computeAllProbs(arenas) {
 
 // Generate bets using the current_exploit strategy:
 // Anchors: opening_odds=2 with model p >= min2sProb, OR current_odds >= opening + minJump
-// All payouts use current odds. Only keep bets with EV >= 1.0. Top N by EV.
+// All payouts use current odds. Only keep positive-EV bets and return up to maxBets.
 function generateBets(arenas, probs, options = {}) {
   const {
     maxBets = 10,
@@ -344,7 +344,8 @@ function generateBets(arenas, probs, options = {}) {
     }
   }
 
-  // Sort by EV descending, take top N
+  // Sort by EV descending, take up to maxBets. If fewer positive-EV bets exist,
+  // intentionally return a shorter list rather than suggesting negative-EV bets.
   possibleBets.sort((a, b) => b.ev - a.ev);
   return possibleBets.slice(0, maxBets);
 }

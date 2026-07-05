@@ -205,7 +205,7 @@ function makeArena(pirateIds, foodIds, openingOdds, currentOdds) {
   }
 }
 
-// Test 6: All bets must have EV >= 1.0
+// Test 6: All returned bets must have EV >= 1.0
 {
   const arenas = [makeArena([1, 2, 3, 4], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     [3, 5, 7, 13], [5, 5, 7, 13])];
@@ -220,6 +220,21 @@ function makeArena(pirateIds, foodIds, openingOdds, currentOdds) {
     passed++;
   } else {
     console.log('  FAIL: found bet with EV < 1.0');
+    failed++;
+  }
+}
+
+// Test 7: If fewer than maxBets positive-EV combinations are available, truncate the list
+{
+  const arenas = [makeArena([1, 2, 3, 4], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    [2, 5, 7, 13], [1, 5, 7, 13])];
+  const probs = [[0.55, 0.20, 0.15, 0.10]];
+  const bets = generateBets(arenas, probs, { maxBets: 3, min2sProb: 0.55 });
+
+  if (bets.length === 0) {
+    passed++;
+  } else {
+    console.log(`  FAIL: expected no negative-EV fallback bets, got ${bets.length}: ${bets.map(b => b.ev.toFixed(3)).join(', ')}`);
     failed++;
   }
 }
