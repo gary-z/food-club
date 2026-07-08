@@ -227,6 +227,53 @@ function arenaWinProbs(pirateIds, foodIds) {
   return winProbsFromPmfs(pmfs);
 }
 
+// Probability interval implied by house odds N = max(2, min(13, floor(1/p))).
+function oddsProbBounds(odds) {
+  if (odds === 2) return [1.0 / 3.0, 1.0];
+  if (odds === 13) return [0.0, 1.0 / 13.0];
+  return [1.0 / (odds + 1.0), 1.0 / odds];
+}
+
+function clampAndRedistribute(probs, intervals) {
+  const p = probs.slice();
+  const fixed = new Array(p.length).fill(false);
+
+  for (let iter = 0; iter < 20; iter++) {
+    let changed = false;
+    for (let i = 0; i < p.length; i++) {
+      if (fixed[i]) continue;
+      const [lo, hi] = intervals[i];
+      if (p[i] < lo) {
+        p[i] = lo;
+        fixed[i] = true;
+        changed = true;
+      } else if (p[i] > hi) {
+        p[i] = hi;
+        fixed[i] = true;
+        changed = true;
+      }
+    }
+
+    const fixedSum = p.reduce((sum, prob, i) => fixed[i] ? sum + prob : sum, 0);
+    const freeIndices = p.map((_, i) => i).filter(i => !fixed[i]);
+    const freeSum = freeIndices.reduce((sum, i) => sum + p[i], 0);
+    if (freeIndices.length > 0 && freeSum > 0.0) {
+      const scale = (1.0 - fixedSum) / freeSum;
+      for (const i of freeIndices) p[i] *= scale;
+    }
+
+    if (!changed) break;
+  }
+
+  return p;
+}
+
+function arenaWinProbsClamped(pirateIds, foodIds, openingOdds) {
+  const rawProbs = arenaWinProbs(pirateIds, foodIds);
+  const intervals = openingOdds.map(oddsProbBounds);
+  return clampAndRedistribute(rawProbs, intervals);
+}
+
 // ==================== Round Processing ====================
 
 // Parse round JSON from neofood.club API into our format
@@ -244,7 +291,7 @@ function parseRound(roundData) {
 
 // Compute win probabilities for all 5 arenas
 function computeAllProbs(arenas) {
-  return arenas.map(arena => arenaWinProbs(arena.pirateIds, arena.foodIds));
+  return arenas.map(arena => arenaWinProbsClamped(arena.pirateIds, arena.foodIds, arena.openingOdds));
 }
 
 // ==================== Betting Strategy ====================
@@ -355,7 +402,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     MODEL, PIRATES, FOODS, ARENA_NAMES,
     courseCounts, diceSumPmf, getRollTable, pirateScorePmf,
-    winProbsFromPmfs, arenaWinProbs,
+    winProbsFromPmfs, arenaWinProbs, oddsProbBounds,
+    clampAndRedistribute, arenaWinProbsClamped,
     parseRound, computeAllProbs, generateBets,
   };
 }
