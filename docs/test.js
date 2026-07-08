@@ -1,4 +1,7 @@
-const { courseCounts, arenaWinProbs, generateBets, computeAllProbs, PIRATES } = require('./foodclub.js');
+const {
+  courseCounts, arenaWinProbs, generateBets, computeAllProbs, PIRATES,
+  oddsProbBounds, clampAndRedistribute,
+} = require('./foodclub.js');
 
 // Test vectors for Round 9811 (with corrected food ID ordering matching neofood.club API)
 const TEST_VECTORS = {
@@ -76,6 +79,25 @@ for (let a = 0; a < 5; a++) {
   const probs = arenaWinProbs(arenaPirateIds[a], arenaFoodIds[a]);
   const sum = probs.reduce((a, b) => a + b, 0);
   check(`arena ${a} prob sum`, sum, 1.0, 1e-9);
+}
+
+// Test odds clamping matches the Rust simulation's interval + redistribution behavior
+console.log('Testing odds clamping...');
+{
+  const raw = [0.6, 0.2, 0.1, 0.1];
+  const intervals = [2, 4, 7, 13].map(oddsProbBounds);
+  const clamped = clampAndRedistribute(raw, intervals);
+  const expected = [
+    0.5980769230769231,
+    0.2,
+    0.125,
+    1.0 / 13.0,
+  ];
+
+  for (let i = 0; i < clamped.length; i++) {
+    check(`clamped prob ${i}`, clamped[i], expected[i], 1e-12);
+  }
+  check('clamped prob sum', clamped.reduce((a, b) => a + b, 0), 1.0, 1e-12);
 }
 
 // ==================== generateBets tests ====================
