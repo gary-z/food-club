@@ -164,3 +164,36 @@ Key findings that guided Model 4 improvements:
 - M1 over-predicts fav benefit for strong pirates → fixed by iterative fav
 - M1 over-predicts allergy penalty for weak pirates → fixed by allergy-after
 - Remaining gap to NN (0.00037) suggests hand-rolled model is nearly optimal
+
+
+## Model 4 + Odds Prior (2026-07-29, best overall predictor)
+
+Modern LL: -1.06177 (delta +0.00137 vs Model 4, +0.00100 vs the NN reference)
+
+Not a game model — Model 4 blended with the information contained in the opening
+odds. Only usable for prediction, not for reverse engineering the engine, and only
+for arenas whose odds are already published.
+
+### Pseudocode
+
+```
+// 1. odds -> interval for the odds maker's own probability
+//    N=2  -> (1/3, 1]      (clamped from below)
+//    N=13 -> (0, 1/13]     (clamped from above)
+//    else -> (1/(N+1), 1/N]
+// 2. narrow the four intervals by arc consistency on sum_i p_i = 1
+//    repeat: hi_i = min(hi_i, 1 - sum_(j!=i) lo_j)
+//            lo_i = max(lo_i, 1 - sum_(j!=i) hi_j)
+// 3. p_odds_i = lo_i + t*(hi_i - lo_i), with t solving sum_i p_odds_i = 1
+// 4. blend, then renormalise over the arena
+//    p_i ~ model_p_i^0.5 * p_odds_i^0.5
+```
+
+### Parameters
+- a = 0.5 (chosen on legacy; legacy optimum 0.5, modern optimum 0.7, flat between)
+
+### Notes
+- Do NOT hard-clamp the model into the odds intervals: that scores -1.07125 on
+  modern, worse than the model alone. The intervals bound the odds maker's belief
+  p_om, not the true probability, so they are a prior and not a constraint.
+- See statistical_findings.txt #48.

@@ -11,6 +11,10 @@ path = "src/backtest.rs"
 name = "food_unified"
 path = "src/food_unified.rs"
 
+[[bin]]
+name = "odds_edge"
+path = "src/odds_edge.rs"
+
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

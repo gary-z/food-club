@@ -385,6 +385,137 @@
     equally well.
     Reproduce: bin NN and odds-maker LL by total food relevance across pirates.
 
+## Exhaustive search for opening-odds edge outside 2:1
+
+All of the following: run `cargo run --release --bin odds_edge` from sim/.
+Independently cross-checked with a separate pure-Python implementation
+(agreement to every printed digit on findings 41, 42, 44).
+
+41. **The rounding rule is floor, and the odds maker's four probabilities sum to
+    exactly 1.** p_om <= 1/N holds for every displayed odds value except the 2:1
+    lower clamp, so any arena with no 2:1 pirate must satisfy U = sum_i 1/N_i >= 1
+    under floor. Observed: 1067/1067 such arenas satisfy U >= 1, zero violations,
+    min U = 1.00952. Under round(1/p) about half would fall below 1; under ceil
+    all of them would. This is far stronger than the win-rate-midpoint argument of
+    finding 26, and it additionally proves the four probabilities come from ONE
+    self-consistent arena computation rather than four independent ones (otherwise
+    sampling noise would push U below 1 sometimes).
+    Reproduce: odds_edge section 1.
+
+42. **Structural theorem: at odds 3-13 a correct odds maker cannot be beaten.**
+    floor(1/p_om) = N implies p_om <= 1/N, hence EV = p_om*N <= 1 exactly. The 2:1
+    bin is the only bin clamped from below (all p > 1/3 map to 2), so it is the
+    only bin where EV can structurally exceed 1. The 13:1 bin is clamped from
+    ABOVE, which makes it strictly worse (p < 1/14 still pays 13, EV < 0.93) --
+    clamping does not cut both ways. Consequence: a +EV stratum at N >= 3 requires
+    the odds maker to be *wrong*, not merely coarse. Every search below is
+    therefore a search for odds-maker error.
+
+43. **No stratum at odds>=3 is +EV. 1235 cells tested, none survives.** Scanned
+    pirate, pirate x odds, odds x na, odds x nf, odds x position, pirate x na
+    split by PHP regime, nf x na, odds x overround, odds x era (1000-day blocks),
+    odds x opponent strength sum, allergy-food identity, favourite-food identity,
+    own odds x sorted opponent odds, pirate x position, pirate x nf, exact na
+    (uncapped), odds x own food relevance, odds x opponent total nf, odds x
+    opponent total na. Observed global max z = +3.05 ("10:1 with opponent total
+    na=1", n=231, EV=1.60 -- pure noise).
+      Permutation test on the global max z, 4000 reps, boundary null (every bet
+      set to exactly EV=1): null max z median +3.38, 95th pct +4.16 -> p = 0.83.
+      Same test under the more realistic point null (winner drawn from the
+      odds-implied p_om): p = 0.20.
+    The z distribution is overwhelmingly negative as the floor rule predicts:
+    438 cells at z<-1.96 vs only 10 at z>+1.96 (chance expects 31 each way).
+    Note Bonferroni (|z|>4.10) is the wrong correction here because the cells
+    overlap heavily; the permutation test is the correct one, and it is *less*
+    strict, yet still finds nothing.
+    Reproduce: odds_edge sections 4 and 4b.
+
+44. **NEW EDGE: a model-free certificate for 2:1 bets. U < 1 guarantees +EV, and
+    EV >= 3 - 2U.** For a lone 2:1 favourite, sum_i p_om_i = 1 plus p_om_j <= 1/N_j
+    for the three opponents gives p_om >= 1 - sum_(j!=i) 1/N_j = 1.5 - U, hence
+    EV >= 2*(1.5 - U) = 3 - 2U. So the overround U alone certifies the bet --
+    no game model, no simulation, nothing but the four displayed odds.
+      certificate holds (U<1):  n=11021  WR=0.6869  EV=1.3737  z=+39.2
+      certificate fails:        n=21133  WR=0.4382  EV=0.8764  z=-17.9
+      mean promised bound 1.2457 vs realised 1.3737 (bound respected, as it must be)
+    Monotone in the bound, with every bucket landing above its promise:
+      2*lo in [0.8,0.9) EV=0.998 | [0.9,1.0) 1.063 | [1.0,1.1) 1.176
+      [1.1,1.25) 1.283 | [1.25,1.4) 1.427 | [1.4,inf) 1.636
+    Stable across all six 1000-day blocks (EV 1.344-1.405). Best single slice:
+    2:1 versus (13,13,13) -> bound 1.538, realised EV 1.787, n=685.
+    Practical value: this replaces the model filter of finding 29 with a rule that
+    cannot be wrong about p_om, and it ranks 2:1 bets better than raw odds do.
+    The same construction at odds>=3 tops out at N*lo = 0.971 < 1, i.e. it can
+    never certify a non-2:1 bet -- consistent with finding 42.
+    Reproduce: odds_edge section 3.
+
+45. **The only +EV signal found at odds>=3 is model-vs-odds disagreement, and it
+    is marginal.** Filtering odds>=3 bets on model_p*N >= T (Model 4, odds-blind):
+      T=1.00 n=20786 EV=1.019 z=+1.08 | T=1.10 n=11690 EV=1.064 z=+2.55
+      T=1.20 n=6385  EV=1.102 z=+2.88 | T=1.30 n=3446  EV=1.132 z=+2.67
+    Corrected for the threshold sweep by permutation under the boundary null:
+    p = 0.010. A threshold-free version (sum of model_edge x realised_edge over
+    all bets the model calls +EV, a single conservative one-sided test with
+    nothing to tune) gives z=+2.96, p=0.0016.
+      legacy (model's training regime): z=+2.61, n=16284
+      modern (out of sample):           z=+1.39, n=4502
+    The out-of-sample z is exactly what the legacy effect predicts for that sample
+    size (2.61/sqrt(16284/4502) = 1.37 vs 1.39 observed), so this is not model
+    overfitting. Positive in 6/6 eras and 10/11 odds levels; survives dropping
+    11:1 (n=5705, EV=1.085, z=+2.30).
+    Interpretation: the odds maker's error is real but small, and the floor tax is
+    about the same size, so selecting on disagreement mostly just cancels the tax
+    (EV 0.82 -> ~1.02-1.13) rather than producing a large edge. Treat as
+    suggestive, not established: p=0.0016 on one statistic, and it is 15x weaker
+    per bet than the 2:1 certificate.
+    Reproduce: odds_edge section 5.
+
+46. **The odds maker separates engine-identical pirates, and does it correctly.**
+    Four (strength, weight_offset) classes contain more than one pirate, so those
+    pirates are interchangeable to the game engine at matched (nf, na). At matched
+    (nf, na, position) the odds maker nevertheless quotes them differently, e.g.
+    Ogletree is 0.416 shorter than Ned (z=-10.3) and Bonnie 0.315 shorter than
+    Blackbeard (z=-6.0). This is correct, not a bug: all four pirates in an arena
+    eat the same 10 courses, so a pirate's own (nf, na) is correlated with its
+    opponents' counts differently depending on how its food categories overlap the
+    others'. Reality shows the same ordering, and matching the implied probability
+    gap against the realised win-rate gap leaves no residual:
+      d(WR) - d(p_odds) in pp:  Young/Peg +0.06 (z=+0.09), Bonnie/Blackbeard
+      -0.96 (z=-1.35), Ogletree/Ned -0.41 (z=-0.49), all str-81 pairs |z|<0.8
+    So there is no free edge from pirate identity, and no hidden per-pirate
+    attribute beyond (strength, weight) is needed to explain the pricing.
+    Reproduce: odds_edge section 6b.
+
+47. **The one provable odds-maker bug is unbankable: the 13:1 clamp absorbs it.**
+    Finding 34 established the odds maker still applies the pre-PHP-fix allergy
+    penalty to Orvinn even though modern Orvinn is allergy-immune. That error is
+    visible (modern na=2: odds imply 8.2%, actual 11.7%, cal=1.43, z=+2.4) but it
+    is not payable, because the same error pushes him to 13:1 in 60% of na>=2
+    arenas, where the upper clamp caps the payout below fair value:
+      modern na>=2 @ 13:1  n=268  EV=0.582
+      modern na>=2 @ 8-12:1 n=97 EV=1.691 z=+2.24  (nominal; tiny n, post hoc)
+      modern na>=2 pooled  n=449  EV=0.964
+    General lesson: odds-maker error only pays when it lands the pirate in an
+    unclamped bin. Error that pushes a pirate past 1/14 is swallowed by the 13:1
+    clamp -- the clamps work against the bettor at the long end and for the
+    bettor only at 2:1.
+    Reproduce: odds_edge section 7c.
+
+48. **Blending odds into the model beats both, and beats the NN.** Hard-clamping
+    model probabilities into the odds-implied intervals makes predictions WORSE
+    than the model alone (modern LL -1.07125 vs -1.06314), because the intervals
+    bound p_om and not p_true -- enforcing them is only valid if the odds maker is
+    perfect. A soft geometric blend p ~ model_p^a * p_om^(1-a), renormalised per
+    arena, does work. Choosing a on legacy (a=0.5) and scoring on modern:
+      odds only        -1.07031
+      model only       -1.06314   (Model 4)
+      NN reference     -1.06277   (previous best, finding "NN Reference")
+      blend a=0.5      -1.06177   <- new best modern LL
+    +0.00138 out of sample over Model 4. The displayed odds therefore carry
+    information the game model does not, which is the cleanest available answer to
+    "extract more signal": use the odds as a soft prior, never as a constraint.
+    Reproduce: odds_edge section 5, blend table.
+
 ## Best models
 
 - **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,
