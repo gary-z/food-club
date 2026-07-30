@@ -1,0 +1,62 @@
+==============================================================================
+Reverse engineering the opening odds maker
+==============================================================================
+arenas 28215, pirate states (pirate,nf,na,pos) 2248
+fitting one Luce weight per pirate state on 80% of arenas, scoring exact
+reproduction of the line on the held-out 20%
+
+line fitted                   tiles continuous            tiles 1% round
+                         train / held-out slot     train / held-out slot
+published                        71.2% / 65.5%             71.0% / 65.3%
+p_nn exact                       91.2% / 86.4%             89.6% / 84.5%
+p_nn @1% round                   89.6% / 84.6%             91.0% / 86.2%
+p_M4 exact                       81.7% / 76.1%             80.7% / 75.7%
+p_M4 @1% round                   81.1% / 76.1%             81.5% / 76.1%
+MC N=100 from p_nn               64.5% / 57.7%             64.3% / 57.3%
+MC N=200 from p_nn               69.8% / 63.3%             69.3% / 63.0%
+MC N=500 from p_nn               76.3% / 70.7%             75.7% / 69.9%
+MC N=1000 from p_nn              80.7% / 75.3%             80.2% / 74.9%
+MC N=5000 from p_nn              87.7% / 82.7%             86.5% / 81.5%
+
+arena-exact on held-out (all four odds reproduced):
+  published                continuous: 17.1%       1% round: 16.8%
+  p_nn exact               continuous: 55.7%       1% round: 50.5%
+  p_nn @1% round           continuous: 51.6%       1% round: 55.3%
+  p_M4 exact               continuous: 31.5%       1% round: 30.8%
+  p_M4 @1% round           continuous: 31.7%       1% round: 31.2%
+  MC N=100 from p_nn       continuous: 10.4%       1% round: 10.0%
+  MC N=200 from p_nn       continuous: 15.3%       1% round: 14.6%
+  MC N=500 from p_nn       continuous: 24.0%       1% round: 22.4%
+  MC N=1000 from p_nn      continuous: 31.7%       1% round: 30.7%
+  MC N=5000 from p_nn      continuous: 46.6%       1% round: 43.4%
+
+--- how noisy is the published line? ---
+Read the published line's fit quality against the monte-carlo controls:
+  published:      held-out slot-exact 65.3%
+  MC N=100      held-out slot-exact 57.3%
+  MC N=200      held-out slot-exact 63.0%
+  MC N=500      held-out slot-exact 69.9%
+  MC N=1000     held-out slot-exact 74.9%
+  MC N=5000     held-out slot-exact 81.5%
+  p_nn exact:     held-out slot-exact 84.5%
+  p_M4 exact:     held-out slot-exact 75.7%
+
+--- fitted rating for the published line ---
+(the separable fit is only a 65% approximation of the line, so read these
+ as the best separable summary of it, not as the odds maker's own table;
+ medians are used because classes seen only with clamped odds are unbounded)
+position: median w(pos)/w(pos 0) over states seen with both
+  pos=0: n= 239 ratio=1.0000  1/ratio=1.0000
+  pos=1: n= 234 ratio=1.2238  1/ratio=0.8171
+  pos=2: n= 237 ratio=1.6131  1/ratio=0.6199
+  pos=3: n= 235 ratio=2.2702  1/ratio=0.4405
+favourite: median w(nf)/w(nf-1)
+  nf 0->1: n= 127 ratio=1.3517
+  nf 1->2: n= 242 ratio=1.3070
+  nf 2->3: n= 202 ratio=1.2768
+  nf 3->4: n= 131 ratio=1.2636
+  nf 4->5: n=  57 ratio=1.2476
+allergy: median w(na)/w(na-1) by pirate weight
+  na 0->1: Orvinn(wt221) 0.718, Squire(wt213) 0.697, Stuff-A-Roo(wt211) 0.728, The(wt207) 0.670, Peg(wt202) 0.682, Gooblah(wt199) 0.539, Ol'(wt189) 0.724, Buck(wt189) 0.601
+  na 1->2: Orvinn(wt221) 0.774, Squire(wt213) 0.690, Stuff-A-Roo(wt211) 0.604, The(wt207) 0.661, Peg(wt202) 0.667, Gooblah(wt199) 0.570, Ol'(wt189) 0.687, Buck(wt189) 0.666
+  na 2->3: Orvinn(wt221) 0.191, Squire(wt213) 0.316, Buck(wt189) 0.644, Lucky(wt182) 0.638, Puffo(wt180) 0.647, Admiral(wt171) 0.646, Ned(wt169) 0.644, Scurvy(wt166) 0.654

@@ -385,6 +385,140 @@
     equally well.
     Reproduce: bin NN and odds-maker LL by total food relevance across pirates.
 
+## Odds maker resolution and the monte-carlo question
+
+41. **Opening odds are floor(1/p) of a probability rounded to WHOLE PERCENT.**
+    This refines finding 26. The published odds histogram is lumpy in a way no
+    smooth probability model can produce: relative to floor(1/p_nn) there is a
+    +38% excess at odds 12 and +18% at 11, and deficits of -35% at 8, -22% at 9
+    and -23% at 6. Those are exactly the tiles of a 1-percentage-point grid:
+      odds 13 <- p < 8%      odds 7 <- 13-14%
+      odds 12 <- 8%          odds 6 <- 15-16%
+      odds 11 <- 9%          odds 5 <- 17-20%
+      odds 10 <- 10%         odds 4 <- 21-25%
+      odds  9 <- 11%         odds 3 <- 26-33%
+      odds  8 <- 12%         odds 2 <- >= 34%
+    So odds 8-12 each correspond to a SINGLE percent value, which is why those
+    bins are mis-sized under a continuous rule. Chi-squared of the 12-bin odds
+    histogram against p_nn published under each rule: continuous 1799,
+    0.5% grid 2770, 1% grid 248 (truncate) / 487 (round). Coarser grids are
+    impossible outright: a 2% grid can never express a probability that maps to
+    odds 9 or 11 (which occur 6029 times), a 5% grid kills 7, 8, 9, 11 and 12.
+    Rounding rather than truncation: the 1%-round tiles admit sum(p)=1 in all
+    28215 arenas, the 1%-truncate tiles fail in exactly 1 (day 5609 arena 2,
+    odds 3/3/2/6, tile lower bounds sum to 1.01).
+    Reproduce: odds_grid_test.py
+
+42. **The published line encodes a normalised probability vector.** For the 1015
+    arenas whose four odds are all in 3..12 (no clamping), the implied intervals
+    must admit a vector summing to 1, i.e. sum 1/(o+1) < 1 <= sum 1/o. Zero
+    violations in 1015. Pseudo-arenas built from four randomly drawn real
+    pirate-slots satisfy it only 13-16% of the time. Mean sum(1/odds) = 1.0386.
+    Reproduce: odds_mc_test.py (section A prints the feasibility counts).
+
+43. **No monte-carlo trial count reproduces the line.** Three measurements pin N
+    in mutually incompatible places, using the cross-fitted NN of nn_truth.py as
+    the real probability:
+      (a) Achievability (model free). The trial counts are integers summing to N,
+          so a published odds vector is only reachable for some N. Every N < 111
+          is impossible for at least one observed line, and 30 further values in
+          [111,1000] are impossible (112-114, 116-120, 122, 124-126, ...).
+      (b) Granularity. The 1% grid of finding 41 means N=100 for a monte carlo.
+          Odds-histogram chi2 by N: 100 -> 136, 150 -> 2736, 200 -> 2903,
+          300 -> 2062, 1000 -> 1696. Only N=100 reproduces the lumpiness.
+      (c) Noise. 2162 within-arena dominance comparisons (finding 44) give 21
+          inversions. Expected inversions: N=100 -> 32.7 (P(<=21)=0.019),
+          N=200 -> 14.3, N=300 -> 10.7 (P(>=21)=0.003), N=1000 -> 3.4
+          (P(>=21)=1e-10). The noise level reads N ~ 150-250.
+      (d) Predictability ceiling. Under H_MC(N) the line is random, so no
+          deterministic rule can match more than mean_i max_v P(v | p_i, N) of
+          the slots: 62.3% at N=100, 63.7% at N=111. Model 5's floor(1/p)
+          already matches 64.26% (SE 0.14pp), so N <= 111 is excluded by ~14
+          sigma independently of (b) and (c).
+    Every N whose histogram works (100, or >=300 with the result additionally
+    rounded to whole percent) predicts the wrong number of inversions; every N
+    whose inversion rate works (150-250) has a histogram chi2 of 2100-4800.
+    Conclusion: the 1% grid is deterministic rounding, not sampling on 100
+    trials, and the residual irregularity in the line is not sampling noise of
+    the real probability at any N.
+    Note: the win-rate-by-odds calibration of finding 26 cannot settle N -- the
+    predicted win rate per odds bucket is within 0.01 of the observed one for
+    every N from 111 to 100000, because contamination into a bucket is roughly
+    symmetric and cancels in the mean.
+    Reproduce: odds_mc_test.py sections A, E, F, G.
+
+44. **The line is not an exactly deterministic function of the arena state.**
+    Model-free monotonicity test. Pirates sharing strength and weight offset are
+    identical inputs to the game (str81: Franchisco/Federismo/Tailhook, str79:
+    Ogletree/Ned, str76: Bonnie/Blackbeard, str73: Sproggie/Peg Leg). Inside one
+    arena, if such a pirate has >= favourites, <= allergies and a later (better)
+    position than its twin, its win probability cannot be lower, so a
+    deterministic monotone odds maker cannot publish worse odds for it. Of 2162
+    comparisons, 2045 improve, 96 tie and 21 invert (0.97%); inversion sizes are
+    12x1, 5x2, 1x3, 2x4, 1x5. The cross-arena version of the same test (same
+    pirate in every position, food dominance) gives 10 inversions in 1152.
+    Part of this is probably systematic rather than random -- see finding 46.
+    Reproduce: odds_mc_test.py section F; odds_twin_test.py.
+
+45. **The odds maker's probability is neither the game's probability nor a
+    per-pirate-state rating rule.** floor(1/p) from the best models reproduces
+    only 63-64% of published odds (M1 63.2%, M2 61.4%, M4 63.9%, M5 64.3%,
+    NN 64.2%), and quantising to 1% does not help (63.0-64.0%). Fitting a
+    Luce/ratio rule p_i = w_i/sum_j w_j with one free weight per (pirate, nf, na,
+    position) -- 2248 parameters -- directly to the line reaches 71.0% train /
+    65.3% held-out. Calibration of that fitter on lines whose generating rule is
+    known: floor(1/p_nn), which IS a per-state rating rule (the NN is a softmax
+    over per-pirate scores), fits at 89.6%/84.5%; an exact dice race
+    floor(1/p_M4), which is not a Luce model, fits at 80.7%/75.7%; monte-carlo
+    lines from p_nn fit at 64.3%/57.3% (N=100), 69.3%/63.0% (N=200),
+    75.7%/69.9% (N=500), 86.5%/81.5% (N=5000). So the published line is less
+    separable than an exact race and about as irregular as a 200-300 trial monte
+    carlo, while its granularity says whole-percent. Dropping position from the
+    fit costs 20pp (65% -> 45%), so the odds maker does model the positional
+    bug of finding 17.
+    Reproduce: odds_reverse.py
+
+46. **The odds maker appears to distinguish two pirate pairs the game cannot.**
+    Paired within-arena regression odds_A - odds_B = c0 + c1*(pos_A - pos_B) at
+    matched nf and na, over arenas containing both twins:
+      Ogletree(177) vs Ned(169), str 79: c0 = -0.84, t = -2.72, n = 44
+      Bonnie(116) vs Blackbeard(171), str 76: c0 = -0.58, t = -2.13, n = 58
+      Franchisco(165) vs Federismo(166), str 81: c0 = -0.04, t = -0.22, n = 47
+      Franchisco(165) vs Tailhook(207),  str 81: c0 = +0.05, t = +0.26, n = 53
+      Federismo(166) vs Tailhook(207),  str 81: c0 = +0.03, t = +0.22, n = 64
+    Head-to-head win shares in the same samples show no game-side preference
+    (all |t| <= 1.02). The str-81 triple spans weights 165 to 207 with no odds
+    difference, so this is not a weight effect beyond wo. Only 2 of 5 pairs are
+    nominally significant and neither survives a strict correction for the 5
+    tests, so treat as suggestive: if real, some of the 21 dominance inversions
+    in finding 44 are systematic rather than noise, which pushes the odds maker
+    further towards deterministic.
+    Reproduce: odds_twin_test.py
+
+47. **The residual disagreement is not about realised allergy damage.** A natural
+    explanation for a deterministic odds maker looking noisy to our models is
+    that it computes its probability from one already-rolled allergy damage value
+    while our PMF models marginalise over the roll. It does not: arenas where no
+    pirate has an allergy at all (n=119, nothing to roll) match at 65.5%, the
+    same as arenas with 2-3 allergic pirates (65.3%, 64.8%) and better only than
+    the 4-allergic case (62.2%). Own-allergy count shows a mild gradient
+    (na=0 68.2%, na=2 60.8%), nowhere near the near-perfect match the hypothesis
+    predicts for allergy-free arenas.
+    Reproduce: odds_allergy_test.py
+
+48. **Tooling for the above.** fc_data.py loads arenas into arrays; nn_truth.py
+    trains the reference NN with 5-fold cross-fitting and writes nn_probs.npz
+    (out-of-fold LL -1.07277 overall, -1.06322 modern, well calibrated in every
+    probability decile); fc_pmf.py computes exact race probabilities for the
+    hand-rolled models (reproduces the documented modern LLs to 5 decimals:
+    M1 -1.06493, M4 -1.06314, M5 -1.06317) and self-checks against a plain monte
+    carlo; fc_odds.py holds the publishing rules, their inverse tiles and the
+    per-state rating fitter.
+    Note: the earlier NN scripts early-stop on the test split, which leaks;
+    nn_truth.py early-stops on a validation slice carved out of the training
+    folds only, so p_nn carries no in-sample optimism.
+
+
 ## Best models
 
 - **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,

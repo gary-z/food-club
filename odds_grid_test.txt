@@ -1,0 +1,58 @@
+==============================================================================
+Resolution of the odds maker's probability
+==============================================================================
+
+--- feasibility of sum(p)=1 given the published odds (model free) ---
+rule                                     empty tiles   arenas infeasible
+continuous floor(1/p)                              -           0 / 28215
+step 5%, round                odds [7, 8, 9, 11, 12]                 n/a
+step 2%, round                          odds [9, 11]                 n/a
+step 1%, round                                     -           0 / 28215
+step 1%, floor                                     -           1 / 28215
+step 0.5%, round                                   -           0 / 28215
+step 0.2%, round                                   -           0 / 28215
+step 0.1%, round                                   -           0 / 28215
+
+tile boundaries for the surviving 1% rules (probability ranges):
+  step 1%, round
+    13:[0.000,0.075)  12:[0.075,0.085)  11:[0.085,0.095)  10:[0.095,0.105)  9:[0.105,0.115)  8:[0.115,0.125)  7:[0.125,0.145)  6:[0.145,0.165)  5:[0.165,0.205)  4:[0.205,0.255)  3:[0.255,0.335)  2:[0.335,1.000)
+  step 1%, floor
+    13:[0.000,0.080)  12:[0.080,0.090)  11:[0.090,0.100)  10:[0.100,0.110)  9:[0.110,0.120)  8:[0.120,0.130)  7:[0.130,0.150)  6:[0.150,0.170)  5:[0.170,0.210)  4:[0.210,0.260)  3:[0.260,0.340)  2:[0.340,1.000)
+
+arenas incompatible with the 1%-floor rule (1):
+  day 5609 arena 2: odds=(np.int64(3), np.int64(3), np.int64(2), np.int64(6)) tile lower bounds sum to 1.010 > 1
+(the 1%-round rule has to hold for every arena, so rounding, not truncation)
+
+--- does test 1 have power? simulate finer/other resolutions ---
+draw p from p_nn, quantise it with the stated rule, publish the odds, then
+ask how often the resulting line is incompatible with a 1%-round line
+generating rule               incompatible with 1%-round
+continuous (exact p)                               0.00%
+step 0.5%, round                                   0.00%
+step 0.2%, round                                   0.00%
+step 1%, round                                     0.00%
+step 1%, floor                                     0.00%
+step 2%, round                                     0.00%
+monte carlo N=100                                  0.00%
+monte carlo N=111                                  0.00%
+monte carlo N=200                                  0.00%
+monte carlo N=500                                  0.00%
+OBSERVED                                           0.00%
+
+--- odds histogram: observed vs each publishing rule applied to p_nn ---
+ odds  observed       exact    1% round    1% floor        0.5%      MC 111
+    2     32154       31395       31171       30563       31494       31080
+    3     12203       12728       12052       11787       12167       13604
+    4      9452        9851        9662        9428        9779        8750
+    5      8797        7704        9226        9120        8039        8272
+    6      4969        6468        5408        5214        6754        7165
+    7      5384        5210        5837        5764        4405        5152
+    8      2840        4391        3130        3027        4664        2757
+    9      2879        3671        3234        3235        3279        2764
+   10      3067        3075        3329        3280        3344        2967
+   11      3150        2674        3505        3394        3541        3057
+   12      3295        2379        3710        3556        1863        3082
+   13     24670       23314       22596       24492       23531       24210
+ chi2                  1799         487         248        2770         991
+(chi2 against 12 bins, so anything above ~30 is a decisive misfit; all rules
+ share the same p_nn, so the differences isolate the publishing rule)

@@ -1,0 +1,235 @@
+==============================================================================
+Is the opening odds line a monte carlo of the real win probability?
+==============================================================================
+arenas 28215  (legacy 22250, modern 5965)
+
+--- A. which N can produce the observed odds vectors (model free) ---
+k_i is an integer count out of N and sum_i k_i = N, so a published odds
+vector is only reachable for N where every odds value has a non-empty k
+range and the ranges can sum to exactly N.
+distinct sorted odds vectors: 350
+smallest N that can produce every observed odds vector: 111
+N < 111 is impossible for ANY published line. Sample coverage:
+    N=     10:  23.16% of arenas reachable
+    N=     25:  54.43% of arenas reachable
+    N=     50:  79.98% of arenas reachable
+    N=     75:  89.20% of arenas reachable
+    N=    100: 100.00% of arenas reachable
+    N=    110:  99.99% of arenas reachable
+    N=    111: 100.00% of arenas reachable
+    N=    120:  89.21% of arenas reachable
+    N=    150: 100.00% of arenas reachable
+    N=    200: 100.00% of arenas reachable
+    N=    500: 100.00% of arenas reachable
+    N=   1000: 100.00% of arenas reachable
+    N=1000000: 100.00% of arenas reachable
+N in [111,1000] still impossible: 30 values, e.g. [112, 113, 114, 116, 117, 118, 119, 120, 122, 124, 125, 126]
+Verdict A: every N below 111 is excluded outright, plus many larger ones.
+
+NN truth model: out-of-fold LL/arena = -1.07277 (uniform -1.38629)
+
+--- B. pseudo-likelihood of the published odds given p_nn, by N ---
+per slot: P(k_i in the range implied by the published odds), k_i~Bin(N,p_nn)
+        N  pseudo-LL/slot  P(exact match)
+      111        -0.89017         0.41058
+      150        -0.89146         0.41006
+      200        -0.90013         0.40652
+      300        -0.95356         0.38537
+      500        -1.11391         0.32827
+      700        -1.30174         0.27206
+     1000        -1.67816         0.18672
+     1500        -2.62147         0.07270
+     2000        -3.99434         0.01842
+     3000        -7.58135         0.00051
+     5000       -15.55671         0.00000
+     7000       -23.05091         0.00000
+    10000       -32.52685         0.00000
+    20000       -54.35987         0.00000
+    50000       -87.94118         0.00000
+   100000      -116.50695         0.00000
+  1000000      -194.97448         0.00000
+      inf          (det.)         0.64215
+best N in the sweep: 111  (pseudo-LL -0.89017)
+deterministic floor(1/p_nn) matches 64.21% of slots, 15.57% of whole arenas
+
+--- C. win rate by published odds: observed line vs MC-N ---
+If the odds carry MC noise, each odds bucket is contaminated by pirates
+whose real p is far from 1/odds, and the win rate in the bucket gets
+dragged toward the average.  Observed buckets are sharp:
+ odds       n   realWR            95% CI    implied p range  meanP_nn
+    2   32154   0.5234 [0.5180,0.5289] (0.3333,1.0000]    0.5189
+    3   12203   0.2877 [0.2798,0.2958] (0.2500,0.3333]    0.2852
+    4    9452   0.2247 [0.2164,0.2332] (0.2000,0.2500]    0.2237
+    5    8797   0.1836 [0.1756,0.1918] (0.1667,0.2000]    0.1823
+    6    4969   0.1624 [0.1524,0.1729] (0.1429,0.1667]    0.1546
+    7    5384   0.1356 [0.1267,0.1450] (0.1250,0.1429]    0.1369
+    8    2840   0.1229 [0.1113,0.1355] (0.1111,0.1250]    0.1237
+    9    2879   0.1136 [0.1025,0.1257] (0.1000,0.1111]    0.1146
+   10    3067   0.1034 [0.0931,0.1146] (0.0909,0.1000]    0.1060
+   11    3150   0.0984 [0.0885,0.1093] (0.0833,0.0909]    0.0956
+   12    3295   0.0813 [0.0725,0.0912] (0.0769,0.0833]    0.0873
+   13   24670   0.0416 [0.0392,0.0442] (0.0000,0.0769]    0.0499
+
+model-predicted win rate per odds bucket under H_MC(N) (p_nn as truth):
+ odds  observed            95% CI     N=111     N=200     N=500    N=1000    N=5000  N=100000
+    2    0.5234 [0.5180,0.5289]    0.5245    0.5231    0.5255    0.5264    0.5267    0.5271
+    3    0.2877 [0.2798,0.2958]    0.2869    0.2883    0.2888    0.2891    0.2889    0.2892
+    4    0.2247 [0.2164,0.2332]    0.2235    0.2260    0.2250    0.2246    0.2240    0.2241
+    5    0.1836 [0.1756,0.1918]    0.1840    0.1842    0.1838    0.1832    0.1830    0.1830
+    6    0.1624 [0.1524,0.1729]    0.1539    0.1554    0.1549    0.1542    0.1545    0.1544
+    7    0.1356 [0.1267,0.1450]    0.1328    0.1362    0.1342    0.1341    0.1340    0.1337
+    8    0.1229 [0.1113,0.1355]    0.1205    0.1218    0.1186    0.1187    0.1181    0.1179
+    9    0.1136 [0.1025,0.1257]    0.1117    0.1095    0.1067    0.1064    0.1057    0.1055
+   10    0.1034 [0.0931,0.1146]    0.1037    0.0998    0.0970    0.0958    0.0956    0.0954
+   11    0.0984 [0.0885,0.1093]    0.0945    0.0902    0.0879    0.0875    0.0872    0.0871
+   12    0.0813 [0.0725,0.0912]    0.0865    0.0831    0.0811    0.0807    0.0801    0.0801
+   13    0.0416 [0.0392,0.0442]    0.0511    0.0489    0.0467    0.0457    0.0454    0.0452
+
+same table as a compatibility count (odds buckets 3..12 whose observed CI
+contains the model's predicted win rate):
+    N=    111: 10/10 buckets compatible
+    N=    200: 10/10 buckets compatible
+    N=    500: 9/10 buckets compatible
+    N=   1000: 9/10 buckets compatible
+    N=   5000: 9/10 buckets compatible
+    N= 100000: 9/10 buckets compatible
+bucket sizes drift with N too; observed vs predicted counts:
+ odds  observed     N=111     N=200     N=500    N=1000    N=5000  N=100000
+    2     32154     31135     31668     31500     31428     31432     31385
+    3     12203     13527     12110     12460     12594     12698     12736
+    4      9452      8744      9685      9755      9815      9845      9849
+    5      8797      8304      8032      7871      7900      7710      7717
+    6      4969      7036      6503      6445      6447      6388      6458
+    7      5384      5200      4370      5290      5009      5262      5240
+    8      2840      2723      4591      4338      4347      4389      4363
+    9      2879      2835      3217      3243      3615      3603      3677
+   10      3067      2869      3316      3413      3411      3118      3053
+   11      3150      3095      3510      2770      2450      2741      2679
+   12      3295      3121      1771      2189      2572      2323      2382
+   13     24670     24266     24082     23582     23269     23347     23317
+
+--- D. does the published line bracket the real probability? ---
+Under H_MC(inf) (exact computation of the real p) the real p must lie in
+the interval the published odds imply.  Test it with outcomes only.
+ odds       n   realWR                CI            implied    verdict
+    3   12203   0.2877 [0.2798,0.2958] (0.2500,0.3333]         ok
+    4    9452   0.2247 [0.2164,0.2332] (0.2000,0.2500]         ok
+    5    8797   0.1836 [0.1756,0.1918] (0.1667,0.2000]         ok
+    6    4969   0.1624 [0.1524,0.1729] (0.1429,0.1667]         ok
+    7    5384   0.1356 [0.1267,0.1450] (0.1250,0.1429]         ok
+    8    2840   0.1229 [0.1113,0.1355] (0.1111,0.1250]         ok
+    9    2879   0.1136 [0.1025,0.1257] (0.1000,0.1111]         ok
+   10    3067   0.1034 [0.0931,0.1146] (0.0909,0.1000]         ok
+   11    3150   0.0984 [0.0885,0.1093] (0.0833,0.0909]         ok
+   12    3295   0.0813 [0.0725,0.0912] (0.0769,0.0833]         ok
+aggregate violations: 0/10 -- the line is well calibrated on average
+
+but aggregates hide sign-flipping errors.  Slice by (pirate, regime):
+Orvinn the First Mate, whose allergy penalty the game stopped applying
+around round 8616 while the odds maker kept applying it (finding 4c/34):
+  legacy na=0: n=  958 realWR=0.1420 CI[0.1213,0.1655] mean 1/odds=0.1735  mean p_nn=0.1251
+  legacy na=1: n= 1858 realWR=0.1103 CI[0.0969,0.1254] mean 1/odds=0.1371  mean p_nn=0.1112
+  legacy na=2+: n= 1634 realWR=0.0863 CI[0.0736,0.1009] mean 1/odds=0.1060  mean p_nn=0.0820
+  modern na=0: n=  244 realWR=0.1107 CI[0.0772,0.1562] mean 1/odds=0.1815  mean p_nn=0.1284
+  modern na=1: n=  500 realWR=0.1060 CI[0.0820,0.1361] mean 1/odds=0.1446  mean p_nn=0.1169
+  modern na=2+: n=  449 realWR=0.1091 CI[0.0835,0.1414] mean 1/odds=0.1042  mean p_nn=0.0812
+
+population version, using p_nn as the real probability:
+slots whose p_nn lies inside the interval implied by the published odds: 64.21%
+  odds= 2: inside  92.2%  mean p_nn=0.5189  implied (0.3333,1.0000]
+  odds= 3: inside  64.9%  mean p_nn=0.2852  implied (0.2500,0.3333]
+  odds= 4: inside  50.9%  mean p_nn=0.2237  implied (0.2000,0.2500]
+  odds= 5: inside  39.3%  mean p_nn=0.1823  implied (0.1667,0.2000]
+  odds= 6: inside  33.3%  mean p_nn=0.1546  implied (0.1429,0.1667]
+  odds= 7: inside  26.3%  mean p_nn=0.1369  implied (0.1250,0.1429]
+  odds= 8: inside  21.7%  mean p_nn=0.1237  implied (0.1111,0.1250]
+  odds= 9: inside  19.0%  mean p_nn=0.1146  implied (0.1000,0.1111]
+  odds=10: inside  14.7%  mean p_nn=0.1060  implied (0.0909,0.1000]
+  odds=11: inside  14.0%  mean p_nn=0.0956  implied (0.0833,0.0909]
+  odds=12: inside  12.6%  mean p_nn=0.0873  implied (0.0769,0.0833]
+  odds=13: inside  85.5%  mean p_nn=0.0499  implied (0.0000,0.0769]
+
+For H_MC(inf) the *whole arena* must be bracketed. Fraction of arenas with
+all four p_nn inside: 15.57%
+
+--- E. how predictable can a monte-carlo line be? ---
+Under H_MC(N) the line is random, so no deterministic rule can reproduce
+more than  mean_i max_v P(odds_i = v | p_i, N)  of the published values.
+Compare that against what fixed models actually score on the real line.
+model        exact   @1% floor
+M1          63.15%      63.02%
+M2          61.41%      61.41%
+M4          63.89%      63.80%
+M5          64.26%      63.98%
+p_nn        64.21%      63.93%
+best fixed rule on the real line: 64.26% of slots
+
+       N   ceiling  truth rule                   verdict
+     100     62.3%       60.0%EXCLUDED (beaten by a fixed rule)
+     111     63.7%       61.2%EXCLUDED (beaten by a fixed rule)
+     150     65.6%       63.8%                          
+     200     67.8%       66.3%                          
+     250     70.0%       68.4%                          
+     300     71.2%       70.0%                          
+     400     72.9%       72.3%                          
+     500     74.8%       74.3%                          
+     700     77.3%       77.0%                          
+    1000     79.9%       79.7%                          
+    2000     84.7%       84.7%                          
+    5000     89.9%       89.9%                          
+
+--- F. monotonicity: is the line a deterministic function of the state? ---
+Pirates with the same strength and the same weight offset are identical
+inputs to the game.  Inside one arena, if such a pirate has at least as many
+favourites, no more allergies and a later (better) position than its twin,
+its win probability cannot be lower, so a deterministic odds maker must not
+publish worse odds for it.  This needs no model of the game.
+  interchangeable groups: str73: Young/Peg; str79: Sir/Ned; str76: Bonnie/Admiral; str81: Franchisco/Federismo/The
+  comparisons: 2162   inversions: 21 (0.97%)   a deterministic rule allows 0
+  inversion sizes: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 4, 5]
+       N        expected inversions   P(<=obs)   P(>=obs)
+     100                       32.7   1.91e-02   9.89e-01
+     100  +pct                 33.7   1.26e-02   9.93e-01
+     200                       14.3   9.65e-01   5.64e-02
+     200  +pct                 14.6   9.58e-01   6.67e-02
+     300                       10.7   9.98e-01   3.36e-03
+     300  +pct                  8.5   1.00e+00   2.03e-04
+     500                        4.8   1.00e+00   3.92e-08
+     500  +pct                  5.5   1.00e+00   3.55e-07
+     700                        4.9   1.00e+00   5.50e-08
+     700  +pct                  3.6   1.00e+00   2.87e-10
+    1000                        3.4   1.00e+00   1.04e-10
+    1000  +pct                  3.1   1.00e+00   1.99e-11
+    5000                        1.2   1.00e+00   0.00e+00
+    5000  +pct                  1.5   1.00e+00   0.00e+00
+
+--- G. the two measurements of N ---
+granularity: chi2 of the 12-bin odds histogram (quantisation makes it lumpy,
+             monte-carlo noise smooths the lumps away)
+noise:       inversions in test F
+rule                        hist chi2  inversions
+deterministic, exact p           1799           1
+deterministic, 1% round           487           1
+deterministic, 1% floor           248           1
+deterministic, 0.5%              2770           1
+MC N=100                          136        38.0
+MC N=100 + pct                    162        38.2
+MC N=150                         2736        20.0
+MC N=150 + pct                   2105        21.5
+MC N=200                         2903        14.8
+MC N=200 + pct                   4763        15.8
+MC N=300                         2062         9.8
+MC N=300 + pct                    341        10.2
+MC N=500                         1785         8.5
+MC N=500 + pct                    401         4.5
+MC N=1000                        1696         2.2
+MC N=1000 + pct                   657         3.0
+MC N=5000                        1755         1.8
+MC N=5000 + pct                   487         1.5
+OBSERVED                           --          21
+
+The histogram is only reproduced when the probability sits on a 1% grid,
+which for a monte carlo means N=100; but at N=100 the line would invert
+dominance far more often than it does, and a fixed rule already beats the
+N=100 predictability ceiling.  Larger N fixes the noise and breaks the
+histogram.  No single N does both.

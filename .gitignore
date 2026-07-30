@@ -170,3 +170,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 web/
+
+# large derived fit artefact (regenerate with odds_reverse.py)
+odds_fit.npz
