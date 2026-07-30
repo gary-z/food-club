@@ -170,3 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 web/
+
+# food-club analysis artifacts (regenerable)
+edge_oof_*.npz
+edge_*.log

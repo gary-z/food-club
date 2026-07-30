@@ -208,6 +208,8 @@
     only covers opening odds.
     Reproduce: run backtest.rs strategies make_bets_top_ev, make_bets_2s_parlays,
     make_bets_no_2s.
+    See findings 41-47: this was attacked directly and survived, except that
+    the current_odds caveat above turns out to be a real +21.7% edge (47).
 
 29. **Model-filtered odds=2 singles are highly profitable.** Filtering odds=2
     pirates by model win probability dramatically improves ROI:
@@ -256,6 +258,9 @@
     Confirms: the odds maker is well-calibrated for odds >= 3 and our model
     cannot manufacture edge where none structurally exists.
     Reproduce: run food_unified.rs model-filtered edge analysis with EV sweep.
+    Re-tested in finding 44 with out-of-fold NN probabilities and a boundary-null
+    bootstrap instead of Bonferroni; same conclusion, with the odds=11 hint
+    reappearing and then failing every follow-up test (finding 45).
 
 ## Tie-break positional advantage theory
 
@@ -384,6 +389,141 @@
     effects in play, not a model-specific error. Both models handle food overlap
     equally well.
     Reproduce: bin NN and odds-maker LL by total food relevance across pirates.
+
+## Falsification attempt: "no edge unless opening odds are 2:1"
+
+Findings 41-47 are a deliberate attempt to BREAK finding 28/31. Scripts:
+edge_train_nn.py, edge_structural.py, edge_strategies.py, edge_deepdive.py,
+edge_odds11.py, edge_verdict.py. Result: the claim survives, with one
+important exception (finding 47) that lives outside the opening-odds board.
+
+41. **NN retrained with an out-of-fold protocol; prior NN LLs were optimistic.**
+    5-fold CV by day, 3-seed probability ensemble, early stopping on a
+    validation split carved out of the *training* folds. Out-of-fold LL:
+      base (str, wt, nf, na):            -1.07318 all / -1.06357 modern
+      + pirate one-hot + regime flag:    -1.07390 all / -1.06728 modern
+      + opening-odds features:           -1.07312 all / -1.06637 modern
+      odds maker (normalised 1/N):       -1.09495 all / -1.08829 modern
+    The 4 raw features remain sufficient: neither pirate identity nor the odds
+    themselves add anything (deltas are within seed noise, and negative on
+    modern data). The NN beats the odds maker by +0.0218 nats/arena
+    [+0.0191, +0.0243], so it does hold information the odds maker lacks —
+    which is the necessary condition for edge, and is not sufficient (see 44).
+    Note: nn_winrate_table.txt's -1.05821 is NOT comparable — that script
+    early-stops on its own test set. Honest OOF cost ~0.015 nats.
+    Reproduce: edge_train_nn.py {base,ident,market}; edge_nn_calibration.py.
+
+42. **No Dutch book exists on the opening board, and none can.** Betting
+    1/N_i on every pirate in an arena returns exactly 1, so sum_i 1/N_i < 1 is
+    risk-free arbitrage. It occurs in 11030/28215 arenas (39.1%) — every single
+    one of which contains a 2:1 pirate, where 1/2 is not an upper bound on p
+    (the 2 bin is clamped from above). Over the 1067 arenas with no 2:1, the
+    minimum is 1.0095 and the condition never fires. More generally p_i >=
+    1 - sum_{j!=i} u_j, so a bet at N>=3 is *provably* +EV from opening odds
+    alone only when the arena's upper bounds sum below 1 — which requires no
+    2:1 pirate. The 2:1 clamp is therefore not merely the largest edge on the
+    board, it is the only one obtainable without a model.
+    The mirror-image check also passes: sum of bin lower bounds never exceeds
+    1 (max 0.9762), so the floor rule is internally consistent everywhere.
+    Reproduce: edge_structural.py TEST 2.
+
+43. **~800 outcome-blind cells scanned for a WR > 1/N violation; none found.**
+    Under floor rounding WR > 1/N is impossible for N>=3, so every cell is a
+    falsification chance. Multiplicity handled by a max-z bootstrap under the
+    *boundary* null p_i = 1/N_i (EV exactly 1.0 — the friendliest reading of
+    H0; independent simulation over-states variance, so p-values are
+    conservative).
+      11 odds bins:                    max z=1.46 (odds=11), FWER p=0.56
+      160 (pirate x odds) cells:       max z=2.88, FWER p=0.36
+      162 (pirate x nf/na) cells:      max z=1.60, FWER p=0.999
+      210 (odds x pos/nf/na/regime/overround) cells: max z=1.90, FWER p=0.99
+    Bins 9, 10 and 11 sit above their ceilings (+2.2%, +3.4%, +8.3% ROI) but
+    none individually or jointly reaches significance (pooled 9-12: z=1.05).
+    Targeted priors also fail: Orvinn modern na>=1 at odds>=3 is -22.5% ROI
+    despite finding 34's stale-odds-maker result, and Gooblah na>=2 is +10.6%
+    (z=1.08). Split-half cell replication is flat (+10.7% and +1.2%).
+    Reproduce: edge_structural.py TESTS 1, 3, 3b, 4, 5, 6.
+
+44. **The NN cannot manufacture edge: realised WR tracks min(p_nn, 1/N).**
+    The decisive test. Two accounts make different numeric predictions on the
+    same bets — M1 "the NN is right" (delivered ROI = claimed) versus M0/H0
+    "the ceiling binds" (delivered = capped at 1/N, i.e. 0.0%):
+      T      bets   claimed   capped   delivered   z vs M1   z vs M0
+      1.00  13936     +9.1%    +0.0%       -0.1%     -4.35     -0.02
+      1.05   8439    +13.5%    +0.0%       +4.1%     -3.30     +1.45
+      1.10   4769    +18.2%    +0.0%       +8.3%     -2.52     +2.10
+      1.20   1423    +27.7%    +0.0%       +3.2%     -3.28     +0.42
+      1.30    409    +37.0%    +0.0%       -9.8%     -3.46     -0.72
+    Across every threshold the NN's claimed edge is rejected (up to 4.4 sigma)
+    while H0's capped prediction fits. The NN's within-bin ranking IS real
+    (Stouffer trend z=8.84 across bins) — it just never survives contact with
+    the ceiling, which is exactly what floor rounding predicts. Bets where
+    only one of the three NN variants claims EV>=1.15 return -0.2%.
+    Parlays behave as H0 requires too: forcing the daily top-10 EV parlays to
+    contain no 2:1 pirate returns -8.0% over 56430 bets (z=-3.18), and the
+    4268 bets in arenas with no 2:1 pirate at all return -7.9% [-9.8%, -5.9%],
+    comfortably inside the [1-N(S-1), 1] window H0 allows.
+    Reproduce: edge_verdict.py section 1; edge_strategies.py sections 2-8.
+
+45. **The single surviving anomaly (odds=11 + NN EV>=1.10) is best read as
+    noise.** 353 bets, WR 14.45% vs a 9.09% ceiling, +58.9% ROI, z=+3.50.
+    It fails every follow-up:
+      - Multiplicity: FWER p=0.067 within its own (odds,T) family alone, before
+        counting the other ~750 cells searched.
+      - No neighbours: the identical NN cut gives +8.5% at odds=10 and -10.1%
+        at odds=12. A real mispricing does not respect a bin boundary.
+      - No mechanism: 352 distinct arenas over 345 days, spread across pirates,
+        positions, nf and na; odds internally consistent (rank inversions vs
+        the NN are *lower* than average, 0.674 vs 0.771); manual inspection of
+        the top arenas shows nothing unusual.
+      - It beats its own discoverer: the NN predicted p=0.1093, reality gave
+        0.1445 — a +2.12 sigma overshoot of the model that selected it. A
+        detected mispricing should land on the model's number, not above it.
+      - Strict walk-forward: train-on-first-half gives +10.5% (z=0.82) out of
+        sample; train-on-first-2/3 gives -0.8% (z=-0.05).
+      - Remove odds=11 and the headline "EV>=1.15, odds>=3" strategy falls from
+        +14.2% (z=2.75) to +8.1% (z=1.52). Dropping any other bin changes
+        nothing. The entire NN result rests on this one pocket.
+      - The implied error is implausibly large: taking it at face value, the
+        odds maker should have priced these pirates at 6.9:1 rather than 11:1,
+        a four-level miss by a simulation that is otherwise accurate to the
+        third decimal place (finding 26).
+    Reproduce: edge_odds11.py; edge_deepdive.py; edge_verdict.py section 2.
+
+46. **Power: what a null result rules out.** One-sided 95% upper confidence
+    limits on true ROI per opening odds level: N=3 -11.7%, N=4 -7.3%,
+    N=5 -4.8%, N=6 +2.6%, N=7 +0.3%, N=8 +6.4%, N=9 +11.0%, N=10 +12.4%,
+    N=11 +17.9%, N=12 +7.0%, N=13 -43.2%; odds 3-12 pooled -4.6%. So a
+    uniform edge above ~5% at odds 3-5 or above ~3% pooled is excluded, but
+    high-odds bins remain individually weak: variance scales as odds^2, so
+    odds=11 needs ~17% ROI over 3000 bets just to reach z=2. Confirming the
+    odds=11 pocket at z=3.5 needs ~528 bets at its observed (inflated) effect
+    size — 23 years of play, since it fires 22.8 times a year — and ~3600 bets
+    (~158 years) if the true edge is the +20% the NN actually claims. Sample
+    size, not model quality, is the binding constraint on this question.
+    Reproduce: edge_structural.py TEST 9.
+
+47. **The claim is false for payout drift: opening odds >= 3 whose CURRENT odds
+    have risen are structurally +EV.** This follows from H0 itself. Floor
+    rounding means opening odds N implies p > 1/(N+1) for N in 3..12, so any
+    payout of N+1 or better has EV > 1 with no model at all. Backtest paying
+    at current odds:
+      open 3-12, current >= open+1: 20073 bets, +21.7% ROI [+17.9%, +25.6%]
+      open 3-12, current >= open+2: 11953 bets, +30.9% ROI [+25.3%, +36.4%]
+      open 3-12, current == open:   19707 bets,  -7.3% [-9.8%, -5.1%]  (control)
+      open 3-12, current <  open:    2945 bets, -30.4% [-35.8%, -24.7%] (control)
+    (95% CIs are day-clustered bootstraps.)
+    The guaranteed floor for the first row is EV=1.097, and it delivers more.
+    This does NOT contradict findings 27/31: the same bets pay -4.8% at their
+    opening odds, and their win rate stays below the opening upper bound
+    (z=-4.15 against mean 1/N). The opening odds are not wrong — they are a
+    *certificate* that p exceeds 1/(N+1), and drift makes that certificate
+    cashable. Odds=13 is excluded: being clamped from below it certifies
+    nothing (current==13 pays -47.9%).
+    Caveat: assumes the recorded current_odds could be locked in by betting
+    late in the day, which is how Food Club odds work but is not verified from
+    this data alone.
+    Reproduce: edge_structural.py TEST 8; edge_strategies.py section 9.
 
 ## Best models
 

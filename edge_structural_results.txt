@@ -1,0 +1,157 @@
+==============================================================================
+STRUCTURAL FALSIFICATION TESTS — 'no edge at opening odds != 2'
+==============================================================================
+112860 pirate-slots, 28215 arenas, 5643 days (5965 modern arenas)
+
+------------------------------------------------------------------------------
+TEST 1. Per-odds-level bound test:  is WR > 1/N ?  (impossible under H0)
+------------------------------------------------------------------------------
+odds    bets   wins       WR      1/N      ROI  z(WR>1/N)    p1side
+   3   12203   3511   0.2877   0.3333  -13.69%     -10.69    1.0000
+   4    9452   2124   0.2247   0.2500  -10.11%      -5.68    1.0000
+   5    8797   1615   0.1836   0.2000   -8.21%      -3.85    0.9999
+   6    4969    807   0.1624   0.1667   -2.56%      -0.81    0.7898
+   7    5384    730   0.1356   0.1429   -5.09%      -1.52    0.9363
+   8    2840    349   0.1229   0.1250   -1.69%      -0.34    0.6332
+   9    2879    327   0.1136   0.1111    2.22%       0.42    0.3366
+  10    3067    317   0.1034   0.1000    3.36%       0.62    0.2676
+  11    3150    310   0.0984   0.0909    8.25%       1.46    0.0715
+  12    3295    268   0.0813   0.0833   -2.40%      -0.41    0.6609
+  13   24670   1027   0.0416   0.0769  -45.88%     -20.80    1.0000
+   2   32154  16830   0.5234   0.5000    4.68%       8.40   (clamped bin — positive control)
+
+max z over the 11 bins = 1.46;  FWER p = 0.5641 (boundary-null bootstrap, 20k sims)
+
+------------------------------------------------------------------------------
+TEST 2. Dutch book: sum_i 1/N_i over an arena (H0 requires >= 1 with no 2:1)
+------------------------------------------------------------------------------
+  all arenas             n= 28215  min=0.7308  below 1.0:  11030 (39.09%)
+  arenas with no 2:1     n=  1067  min=1.0095  below 1.0:      0 (0.00%)
+  no 2:1, modern         n=   218  min=1.0167  below 1.0:      0 (0.00%)
+  (arenas containing a 2:1 legitimately fall below 1: the 2 bin is clamped
+   from above, p can be up to 1.0, so 1/2 is not an upper bound on p.)
+  sum of bin LOWER bounds > 1 (would falsify floor rule): 0 / 28215 arenas   max=0.9762
+
+------------------------------------------------------------------------------
+TEST 3. Cell scan: every (pirate x odds) cell with n>=150, WR vs 1/N
+------------------------------------------------------------------------------
+  160 cells tested. Top 10 by z:
+  cell                                          n      WR     1/N      ROI      z
+  Young Sproggie @ 6:1                        307  0.2280  0.1667    36.8%   2.88
+  Sir Edmund Ogletree @ 8:1                   152  0.1776  0.1250    42.1%   1.96
+  Scurvy Dan the Blade @ 5:1                  188  0.2553  0.2000    27.7%   1.90
+  Stuff-A-Roo @ 11:1                          210  0.1238  0.0909    36.2%   1.66
+  Peg Leg Percival @ 11:1                     279  0.1183  0.0909    30.1%   1.59
+  Fairfax the Deckhand @ 11:1                 224  0.1205  0.0909    32.6%   1.54
+  Puffo the Waister @ 11:1                    253  0.1186  0.0909    30.4%   1.53
+  Admiral Blackbeard @ 9:1                    202  0.1436  0.1111    29.2%   1.47
+  Young Sproggie @ 12:1                       227  0.1101  0.0833    32.2%   1.46
+  Ned the Skipper @ 10:1                      160  0.1313  0.1000    31.2%   1.32
+  max z = 2.88;  FWER p = 0.3556 (5k sims)
+
+------------------------------------------------------------------------------
+TEST 3b. Cell scan at odds>=3: (pirate), (pirate x na), (pirate x nf)
+------------------------------------------------------------------------------
+  162 cells tested. Top 8 by z:
+  cell                                          n      WR  mean 1/N      ROI      z
+  Ned the Skipper na=0                        434  0.2604    0.2288     9.0%   1.60
+  Sir Edmund Ogletree na>=3                   206  0.1845    0.1511    18.0%   1.38
+  Buck Cutlass na=2                           706  0.2649    0.2440     7.6%   1.32
+  Gooblah the Grarrl [all odds>=3]            212  0.3349    0.2982    10.8%   1.18
+  Franchisco Corvallio na=0                   296  0.2838    0.2615    10.1%   0.89
+  The Tailhook Kid nf=0                       640  0.1984    0.1869     0.6%   0.77
+  Bonnie Pip Culliford na>=3                  215  0.1488    0.1349     7.9%   0.61
+  Buck Cutlass nf=1                           801  0.2559    0.2499     6.7%   0.40
+  max z = 1.60;  FWER p = 0.9994 (5k sims)
+
+------------------------------------------------------------------------------
+TEST 4. Cell scan: (odds x context) cells — position, nf, na, regime, overround
+------------------------------------------------------------------------------
+  210 cells tested. Top 10 by z:
+  cell                                          n      WR     1/N      ROI      z
+  odds=6 overround[1.05,1.15)                1424  0.1854  0.1667    11.2%   1.90
+  odds=11 na=3                                369  0.1192  0.0909    31.2%   1.89
+  odds=11 overround[0,1.0)                   1503  0.1045  0.0909    14.9%   1.83
+  odds=9 na=3                                 300  0.1433  0.1111    29.0%   1.78
+  odds=10 pos=2                               735  0.1184  0.1000    18.4%   1.66
+  odds=11 pos=2                               781  0.1076  0.0909    18.3%   1.62
+  odds=11 nf=1                                888  0.1059  0.0909    16.4%   1.55
+  odds=10 legacy                             2415  0.1093  0.1000     9.3%   1.53
+  odds=6 nf=4                                 487  0.1910  0.1667    14.6%   1.44
+  odds=11 overround[1.05,1.15)                328  0.1128  0.0909    24.1%   1.38
+  max z = 1.90;  FWER p = 0.9920 (5k sims)
+
+------------------------------------------------------------------------------
+TEST 5. Pre-registered targeted tests (single tests, no multiplicity)
+------------------------------------------------------------------------------
+  test                                                n      WR    1/N̄      ROI      z       p
+  odds 9-12 pooled (coarse discretization)        12391  0.0986  0.0958     2.8%   1.05  0.1463
+  odds >= 6 pooled                                25584  0.1215  0.1227    -0.4%  -0.61  0.7288
+  all odds >= 3 pooled                            80706  0.1411  0.1639   -18.3% -18.09  1.0000
+  all odds >= 3, modern only                      17114  0.1391  0.1647   -19.7%  -9.33  1.0000
+  Orvinn, odds>=3, na>=1, MODERN (finding 34)       938  0.1023  0.1211   -22.5%  -1.80  0.9641
+  Orvinn, odds>=3, na>=1, legacy (control)         3448  0.0966  0.1177   -22.1%  -3.94  1.0000
+  Orvinn, odds>=3, MODERN (all na)                 1162  0.0998  0.1273   -28.3%  -2.87  0.9980
+  Gooblah, odds>=3, na>=2 (finding 4b)              188  0.3298  0.2942    10.6%   1.08  0.1400
+  odds>=3 in low-overround arenas (S<1.02)        36006  0.1086  0.1294   -21.6% -12.01  1.0000
+  odds=13 with nf>=3 (fav-boosted longshots)       4970  0.0479  0.0769   -37.7%  -7.68  1.0000
+
+------------------------------------------------------------------------------
+TEST 6. Split-half replication: pick the best cell on half A, test it on half B
+------------------------------------------------------------------------------
+  even days -> odd days: best in-sample cell = Young Sproggie @ 6:1 (z=3.09)
+     out-of-sample: n=148 WR=0.1959 vs 1/N=0.1667 ROI=+17.6% z=+0.96
+     top-5 cells aggregated out-of-sample: n=599 ROI=+10.7% z=+1.03
+  odd days -> even days: best in-sample cell = Admiral Blackbeard @ 12:1 (z=2.60)
+     out-of-sample: n=123 WR=0.0407 vs 1/N=0.0833 ROI=-51.2% z=-1.71
+     top-5 cells aggregated out-of-sample: n=560 ROI=+1.2% z=+0.51
+
+------------------------------------------------------------------------------
+TEST 7. Time stability of per-bin ROI (is the odds maker drifting?)
+------------------------------------------------------------------------------
+  odds       d0-1128    d1128-2257    d2257-3385    d3385-4514    d4514-5643
+     3   -17.7%(2419)   -14.3%(2439)   -13.0%(2494)   -10.6%(2357)   -12.8%(2494)
+     5    -7.7%(1809)   -17.2%(1830)    +2.1%(1738)   -11.3%(1658)    -6.6%(1762)
+     8    +1.7%( 598)   +12.3%( 570)    -5.4%( 541)    -2.9%( 577)   -14.8%( 554)
+     9   -12.8%( 537)   +10.4%( 546)   +17.9%( 580)    +5.9%( 578)    -9.7%( 638)
+    10    +2.2%( 626)   +13.2%( 636)   +20.7%( 605)    +2.6%( 585)   -22.0%( 615)
+    11   +10.0%( 640)    -0.6%( 631)    -5.3%( 627)   +21.8%( 632)   +15.3%( 620)
+    12    -3.3%( 658)    +2.1%( 670)    +5.8%( 669)    -7.5%( 636)    -9.4%( 662)
+    13   -45.0%(4890)   -47.1%(4865)   -53.8%(4928)   -41.0%(5112)   -42.7%(4875)
+     2    +5.2%(6442)    +4.1%(6398)    +3.6%(6447)    +4.5%(6479)    +6.1%(6388)
+
+------------------------------------------------------------------------------
+TEST 8. Odds drift: opening odds >= 3 whose CURRENT odds rose
+------------------------------------------------------------------------------
+  H0 implies p > 1/(N+1) for N in 3..12, so a payout of N+1 or more is
+  strictly +EV — an edge on pirates whose OPENING odds are not 2:1.
+  selection                                    bets      WR  payout      ROI       z
+  open>=3, current >= open+1                  20073  0.1571    8.83    21.7%    9.07
+  open>=3, current >= open+2                  11953  0.1490    9.48    30.9%    9.66
+  open>=3, current == open (control)          19707  0.2087    5.15    -7.3%   -4.45
+  open>=3, current < open (control)            2945  0.2207    4.02   -30.4%   -8.46
+  open=13, current==13 (no lower bound)       18429  0.0401   13.00   -47.9%  -25.48
+  (z is for ROI>0 using the empirical win rate for variance.)
+
+------------------------------------------------------------------------------
+TEST 9. Power: how large an edge can we still NOT rule out?
+------------------------------------------------------------------------------
+  One-sided 95% upper confidence limit on true ROI (normal approx on the
+  realised per-bet profit; a real edge above this would have been seen).
+  selection                           bets      ROI   95% UCL on ROI
+  odds=3                             12203   -13.7%           -11.7%
+  odds=4                              9452   -10.1%            -7.3%
+  odds=5                              8797    -8.2%            -4.8%
+  odds=6                              4969    -2.6%             2.6%
+  odds=7                              5384    -5.1%             0.3%
+  odds=8                              2840    -1.7%             6.4%
+  odds=9                              2879     2.2%            11.0%
+  odds=10                             3067     3.4%            12.4%
+  odds=11                             3150     8.3%            17.9%
+  odds=12                             3295    -2.4%             7.0%
+  odds=13                            24670   -45.9%           -43.2%
+  odds 3-12 pooled                   56036    -6.2%            -4.6%
+  odds 9-12 pooled                   12391     2.8%             7.4%
+  odds>=3 modern                     17114   -19.7%           -16.7%
+  odds=2 (control)                   32154     4.7%             5.6%
+

@@ -1,0 +1,73 @@
+==============================================================================
+VERDICT: is the NN's claimed edge delivered, or capped at the bin ceiling?
+==============================================================================
+
+------------------------------------------------------------------------------
+1. Claimed vs delivered ROI at each confidence threshold (odds >= 3)
+------------------------------------------------------------------------------
+   M1 predicts delivered = claimed.  M0 (H0) predicts delivered = capped,
+   where capped ROI = mean(min(p_nn, 1/N) * N) - 1 <= 0.
+       T   bets  claimed   capped  delivered  z vs M1  z vs M0
+    1.00  13936    +9.1%    +0.0%      -0.1%    -4.35    -0.02
+    1.05   8439   +13.5%    +0.0%      +4.1%    -3.30    +1.45
+    1.10   4769   +18.2%    +0.0%      +8.3%    -2.52    +2.10
+    1.15   2664   +22.8%    +0.0%     +14.2%    -1.55    +2.53
+    1.20   1423   +27.7%    +0.0%      +3.2%    -3.28    +0.42
+    1.30    409   +37.0%    +0.0%      -9.8%    -3.46    -0.72
+
+   Same, with the odds=11 bin removed:
+       T   bets  claimed   capped  delivered  z vs M1  z vs M0
+    1.00  13116    +8.9%    +0.0%      -1.8%    -5.11    -0.84
+    1.05   7878   +13.3%    +0.0%      +1.6%    -4.14    +0.57
+    1.10   4416   +18.0%    +0.0%      +4.2%    -3.53    +1.08
+    1.15   2428   +22.7%    +0.0%      +8.1%    -2.63    +1.45
+    1.20   1286   +27.6%    +0.0%      -3.0%    -4.09    -0.40
+    1.30    366   +36.7%    +0.0%     -26.2%    -5.02    -2.09
+
+------------------------------------------------------------------------------
+2. Leave-one-bin-out on the headline strategy (EV >= 1.15, odds >= 3)
+------------------------------------------------------------------------------
+   excluded bin       bets      ROI  z vs EV=1
+   none (baseline)    2664   +14.2%      +2.75
+   odds=3             2599   +14.5%      +2.75
+   odds=4             2508   +16.0%      +2.96
+   odds=5             2343   +14.5%      +2.55
+   odds=6             2395   +17.2%      +3.11
+   odds=7             2264   +15.2%      +2.67
+   odds=8             2400   +14.8%      +2.71
+   odds=9             2366   +14.9%      +2.73
+   odds=10            2344   +14.4%      +2.67
+   odds=11            2428    +8.1%      +1.52
+   odds=12            2495   +14.2%      +2.72
+   odds=13            2498   +12.4%      +2.38
+
+------------------------------------------------------------------------------
+3. The odds=11 pocket beats even the model that found it
+------------------------------------------------------------------------------
+   n=353: bin ceiling 1/11 = 0.0909, NN says p = 0.1093, realised = 0.1445
+   realised vs ceiling : z = +3.50  (this is the apparent falsification)
+   realised vs NN claim: z = +2.12  (the pocket also beats the NN itself)
+   A genuine mispricing the NN detected should land ON the NN's number,
+   not 2 sigma above it. Overshooting the discovering model is the
+   signature of an upward fluctuation, not of a discovered edge.
+
+------------------------------------------------------------------------------
+4. Modern regime only (the regime you would actually bet in)
+------------------------------------------------------------------------------
+   selection                            bets      ROI               95% CI
+   all odds>=3                         17114   -19.7% [ -23.2%, -16.2%]
+   odds>=3, NN EV>=1.10                  825    -4.0% [ -20.9%, +12.9%]
+   odds>=3, NN EV>=1.15                  460    +8.3% [ -16.9%, +33.5%]
+   odds=11 (all)                         651   +11.5% [ -14.0%, +37.0%]
+   odds=11, NN EV>=1.10                   56  +116.1% [  +0.6%,+231.6%]
+   odds=2 (control)                     6746    +6.3% [  +3.9%,  +8.6%]
+
+------------------------------------------------------------------------------
+5. What the strongest surviving candidate would actually be worth
+------------------------------------------------------------------------------
+   odds=11 + NN EV>=1.10 fires 22.8 times per year (353 times in 5643 days).
+   Even taking the point estimate at face value (+58.9% ROI), that is
+   23 bets/yr — with 11:1 variance, a year of play has a
+   standard deviation of ~81% of turnover. Full-Kelly stake would be 5.9% of bankroll.
+   By contrast the odds=2 clamp fires 2080 times per year at a verified +4.7% (+29% filtered).
+

@@ -1,0 +1,35 @@
+NN out-of-fold calibration (5-fold by day, 3-seed ensemble, honest early stopping)
+
+variant     OOF LL all     legacy     modern
+base          -1.07318   -1.07576   -1.06357
+ident         -1.07390   -1.07568   -1.06728
+market        -1.07312   -1.07493   -1.06637
+
+Reference points: hand-rolled Model 4 modern LL = -1.06314;
+odds maker (normalised 1/N) = -1.09495 all / -1.08829 modern.
+nn_winrate_table.txt's -1.05821 is not comparable: that run early-stopped
+on its own test set, so it is an optimistic estimate.
+
+Per-pirate OOF calibration (variant 'base', all 5643 days):
+Pirate                              N   Pred%   Real%           95% CI     Status
+----------------------------------------------------------------------------------
+Gooblah the Grarrl               5643   65.3%   65.3% [ 64.1%, 66.5%]         ok
+Scurvy Dan the Blade             5643   46.4%   46.6% [ 45.3%, 47.9%]         ok
+Buck Cutlass                     5643   44.2%   44.9% [ 43.6%, 46.2%]         ok
+Federismo Corvallio              5643   36.0%   36.4% [ 35.2%, 37.7%]         ok
+Franchisco Corvallio             5643   35.2%   35.5% [ 34.3%, 36.8%]         ok
+The Tailhook Kid                 5643   31.3%   31.3% [ 30.1%, 32.5%]         ok
+Lucky McKyriggan                 5643   29.4%   27.6% [ 26.4%, 28.8%]  ** OUT **
+Sir Edmund Ogletree              5643   25.0%   26.9% [ 25.7%, 28.1%]  ** OUT **
+Ned the Skipper                  5643   25.0%   24.2% [ 23.1%, 25.4%]         ok
+Bonnie Pip Culliford             5643   23.4%   23.4% [ 22.3%, 24.5%]         ok
+Ol' Stripey                      5643   20.9%   21.3% [ 20.2%, 22.4%]         ok
+Young Sproggie                   5643   19.3%   19.4% [ 18.3%, 20.4%]         ok
+Fairfax the Deckhand             5643   18.4%   18.7% [ 17.7%, 19.8%]         ok
+Admiral Blackbeard               5643   18.2%   17.3% [ 16.3%, 18.3%]         ok
+Peg Leg Percival                 5643   14.1%   14.1% [ 13.3%, 15.1%]         ok
+Puffo the Waister                5643   13.0%   13.1% [ 12.2%, 14.0%]         ok
+Orvinn the First Mate            5643   10.3%   10.8% [ 10.0%, 11.7%]         ok
+Captain Crossblades              5643   11.4%   10.6% [  9.9%, 11.5%]         ok
+Squire Venable                   5643    6.3%    6.5% [  5.8%,  7.1%]         ok
+Stuff-A-Roo                      5643    6.9%    6.1% [  5.5%,  6.8%]  ** OUT **

@@ -1,0 +1,142 @@
+==============================================================================
+ODDS=11 ANOMALY: mechanism hunt
+==============================================================================
+
+pocket = opening odds 11 with NN EV >= 1.10: 353 bets, WR=0.1445 vs ceiling 0.0909, ROI=+58.9%
+
+------------------------------------------------------------------------------
+1. The identical cut applied to every bin (a real mispricing should smear)
+------------------------------------------------------------------------------
+  odds   bets       WR      1/N      ROI      z  NN p (mean)
+     3    183   0.3388   0.3333    +1.6%  +0.16       0.3816
+     4    362   0.2459   0.2500    -1.7%  -0.18       0.2891
+     5    690   0.2087   0.2000    +4.3%  +0.57       0.2327
+     6    513   0.1442   0.1667   -13.5%  -1.36       0.1947
+     7    735   0.1537   0.1429    +7.6%  +0.84       0.1680
+     8    433   0.1501   0.1250   +20.1%  +1.58       0.1489
+     9    495   0.1232   0.1111   +10.9%  +0.86       0.1325
+    10    470   0.1085   0.1000    +8.5%  +0.62       0.1209
+    11    353   0.1445   0.0909   +58.9%  +3.50       0.1093
+    12    267   0.0749   0.0833   -10.1%  -0.50       0.1007
+    13    268   0.0821   0.0769    +6.7%  +0.32       0.0921
+  Only odds=11 is out of line; 10 and 12 are flat. A structural odds-maker
+  error would not respect bin boundaries this precisely.
+
+------------------------------------------------------------------------------
+2. What is in the pocket?  (looking for a shared configuration)
+------------------------------------------------------------------------------
+  pirate:
+    Sir Edmund Ogletree          70 (19.8%)  vs  4.5% of all 11:1 slots
+    Puffo the Waister            61 (17.3%)  vs  8.0% of all 11:1 slots
+    Peg Leg Percival             44 (12.5%)  vs  8.9% of all 11:1 slots
+    Admiral Blackbeard           43 (12.2%)  vs  6.9% of all 11:1 slots
+    Young Sproggie               28 ( 7.9%)  vs  6.9% of all 11:1 slots
+    Orvinn the First Mate        27 ( 7.6%)  vs  8.2% of all 11:1 slots
+  position:
+    0                           128 (36.3%)  vs 29.9% of all 11:1 slots
+    1                           103 (29.2%)  vs 28.3% of all 11:1 slots
+    2                            90 (25.5%)  vs 24.8% of all 11:1 slots
+    3                            32 ( 9.1%)  vs 17.0% of all 11:1 slots
+  nf:
+    1                            79 (22.4%)  vs 28.2% of all 11:1 slots
+    3                            78 (22.1%)  vs 19.1% of all 11:1 slots
+    2                            62 (17.6%)  vs 27.4% of all 11:1 slots
+    4                            56 (15.9%)  vs  9.0% of all 11:1 slots
+    0                            51 (14.4%)  vs 13.5% of all 11:1 slots
+    5                            27 ( 7.6%)  vs  2.6% of all 11:1 slots
+  na:
+    1                           134 (38.0%)  vs 39.2% of all 11:1 slots
+    2                           122 (34.6%)  vs 29.5% of all 11:1 slots
+    0                            51 (14.4%)  vs 17.6% of all 11:1 slots
+    3                            41 (11.6%)  vs 11.7% of all 11:1 slots
+    4                             5 ( 1.4%)  vs  1.9% of all 11:1 slots
+  regime:
+    legacy                      297 (84.1%)  vs 79.3% of all 11:1 slots
+    modern                       56 (15.9%)  vs 20.7% of all 11:1 slots
+
+  Win rate of the pocket split by those same variables:
+    position=0: 0.141(n=128)  position=1: 0.126(n=103)  position=2: 0.167(n=90)  position=3: 0.156(n=32)
+    nf=0: 0.157(n=51)  nf=1: 0.114(n=79)  nf=2: 0.145(n=62)  nf=3: 0.128(n=78)  nf=4: 0.179(n=56)  nf=5: 0.185(n=27)
+    na=0: 0.176(n=51)  na=1: 0.119(n=134)  na=2: 0.131(n=122)  na=3: 0.244(n=41)
+
+------------------------------------------------------------------------------
+3. Mundane explanations
+------------------------------------------------------------------------------
+  pocket spans 345 distinct days out of 5643; max bets on one day = 2
+  wins spread over 51 days (no single day dominates: max 1 wins)
+  distinct arenas in pocket: 352 of 353 bets
+  mean arena overround of pocket arenas: 0.9833 vs 0.9893 for all 11:1 arenas
+  mean #2:1 pirates in pocket arenas: 1.130 vs 1.175
+
+------------------------------------------------------------------------------
+4. Are the opening odds internally consistent in these arenas?
+------------------------------------------------------------------------------
+  If odds were ever scrambled/misrecorded, the odds ordering would fight
+  the model ordering. Counting rank inversions between 1/odds and NN p:
+  mean |rank difference| per arena: all arenas 0.771, pocket arenas 0.674, all 11:1 arenas 0.583
+  pocket bets where the NN ranks the pirate >=2 places better than the
+  odds do: 2 (0.6%); their WR = 0.0000
+
+------------------------------------------------------------------------------
+5. Ten example pocket arenas (highest NN EV) — do the odds look wrong?
+------------------------------------------------------------------------------
+  day 2358 arena 1 (Lagoon), winner=Scurvy Dan the Blade
+    pos0 Squire Venable           str= 61 odds= 13 nf=1 na=2 NNp=0.030
+    pos1 Captain Crossblades      str= 66 odds=  6 nf=4 na=0 NNp=0.150
+    pos2 Sir Edmund Ogletree      str= 79 odds= 11 nf=0 na=2 NNp=0.143 <== pocket bet
+    pos3 Scurvy Dan the Blade     str= 87 odds=  2 nf=1 na=1 NNp=0.677
+  day 3109 arena 3 (Hidden Cove), winner=Bonnie Pip Culliford
+    pos0 Peg Leg Percival         str= 73 odds=  9 nf=0 na=2 NNp=0.086
+    pos1 Orvinn the First Mate    str= 52 odds= 13 nf=1 na=4 NNp=0.038
+    pos2 Puffo the Waister        str= 68 odds= 11 nf=3 na=2 NNp=0.139 <== pocket bet
+    pos3 Bonnie Pip Culliford     str= 76 odds=  2 nf=3 na=0 NNp=0.738
+  day 5594 arena 0 (Shipwreck), winner=Sir Edmund Ogletree
+    pos0 Puffo the Waister        str= 68 odds= 11 nf=5 na=2 NNp=0.136 <== pocket bet
+    pos1 Sir Edmund Ogletree      str= 79 odds=  2 nf=2 na=0 NNp=0.561
+    pos2 Young Sproggie           str= 73 odds=  4 nf=2 na=1 NNp=0.252
+    pos3 Squire Venable           str= 61 odds= 13 nf=0 na=2 NNp=0.051
+  day 1283 arena 4 (Harpoon Harry's), winner=Fairfax the Deckhand
+    pos0 Sir Edmund Ogletree      str= 79 odds= 11 nf=0 na=3 NNp=0.135 <== pocket bet
+    pos1 Stuff-A-Roo              str= 59 odds= 13 nf=1 na=0 NNp=0.054
+    pos2 Fairfax the Deckhand     str= 71 odds=  2 nf=3 na=0 NNp=0.485
+    pos3 Captain Crossblades      str= 66 odds=  3 nf=1 na=0 NNp=0.326
+  day 120 arena 4 (Harpoon Harry's), winner=Young Sproggie
+    pos0 Young Sproggie           str= 73 odds= 11 nf=3 na=1 NNp=0.135 <== pocket bet
+    pos1 Franchisco Corvallio     str= 81 odds=  2 nf=3 na=1 NNp=0.465
+    pos2 Stuff-A-Roo              str= 59 odds= 13 nf=1 na=0 NNp=0.065
+    pos3 Peg Leg Percival         str= 73 odds=  2 nf=1 na=0 NNp=0.335
+  day 352 arena 1 (Lagoon), winner=Franchisco Corvallio
+    pos0 Sir Edmund Ogletree      str= 79 odds= 11 nf=0 na=1 NNp=0.134 <== pocket bet
+    pos1 Franchisco Corvallio     str= 81 odds=  2 nf=2 na=0 NNp=0.506
+    pos2 Captain Crossblades      str= 66 odds=  4 nf=4 na=0 NNp=0.242
+    pos3 Stuff-A-Roo              str= 59 odds=  9 nf=2 na=1 NNp=0.119
+  day 3475 arena 3 (Hidden Cove), winner=The Tailhook Kid
+    pos0 Peg Leg Percival         str= 73 odds= 10 nf=1 na=0 NNp=0.104
+    pos1 Lucky McKyriggan         str= 82 odds=  5 nf=0 na=1 NNp=0.186
+    pos2 Sir Edmund Ogletree      str= 79 odds= 11 nf=0 na=2 NNp=0.134 <== pocket bet
+    pos3 The Tailhook Kid         str= 81 odds=  2 nf=1 na=0 NNp=0.576
+  day 3187 arena 1 (Lagoon), winner=Federismo Corvallio
+    pos0 Admiral Blackbeard       str= 76 odds= 11 nf=3 na=2 NNp=0.133 <== pocket bet
+    pos1 Stuff-A-Roo              str= 59 odds= 13 nf=2 na=1 NNp=0.054
+    pos2 Peg Leg Percival         str= 73 odds= 11 nf=1 na=2 NNp=0.091
+    pos3 Federismo Corvallio      str= 81 odds=  2 nf=5 na=2 NNp=0.722
+  day 2937 arena 4 (Harpoon Harry's), winner=Bonnie Pip Culliford
+    pos0 Scurvy Dan the Blade     str= 87 odds=  5 nf=2 na=4 NNp=0.128
+    pos1 Fairfax the Deckhand     str= 71 odds= 13 nf=2 na=1 NNp=0.062
+    pos2 Puffo the Waister        str= 68 odds= 11 nf=5 na=2 NNp=0.132 <== pocket bet
+    pos3 Bonnie Pip Culliford     str= 76 odds=  2 nf=5 na=0 NNp=0.679
+  day 2768 arena 2 (Treasure Island), winner=Sir Edmund Ogletree
+    pos0 Ned the Skipper          str= 79 odds=  2 nf=2 na=1 NNp=0.352
+    pos1 Sir Edmund Ogletree      str= 79 odds= 11 nf=0 na=3 NNp=0.131 <== pocket bet
+    pos2 Puffo the Waister        str= 68 odds=  5 nf=3 na=2 NNp=0.157
+    pos3 Bonnie Pip Culliford     str= 76 odds=  2 nf=1 na=1 NNp=0.360
+
+------------------------------------------------------------------------------
+6. If it were real, how long to prove it? / how big could it be?
+------------------------------------------------------------------------------
+  pocket: n=353, ROI=+58.9% +/- 40.3% (95%)
+  the pocket fires 22.8 times per year of play
+  bets needed for a decisive z=3.5 at the observed effect size: 528 (23.1 years)
+  a genuine edge here implies the odds maker believes p<=0.0909 while
+  the truth is ~0.1445 — i.e. it should have paid 6.9:1, not 11:1.
+

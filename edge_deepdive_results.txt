@@ -1,0 +1,130 @@
+==============================================================================
+DEEP DIVE: are the surviving candidates real, or search artefacts?
+==============================================================================
+
+------------------------------------------------------------------------------
+1. Where does the 'EV >= 1.15, odds >= 3' profit actually come from?
+------------------------------------------------------------------------------
+  slice                                            bets      WR      ROI      z
+  ALL (the headline number)                        2664  0.1532   +14.2%  +2.75
+  by opening odds:
+    odds=3                                           65  0.3385    +1.5%  +0.09
+    odds=4                                          156  0.2115   -15.4%  -1.11
+    odds=5                                          321  0.2243   +12.1%  +1.09
+    odds=6                                          269  0.1450   -13.0%  -0.95
+    odds=7                                          400  0.1550    +8.5%  +0.69
+    odds=8                                          264  0.1364    +9.1%  +0.56
+    odds=9                                          298  0.1208    +8.7%  +0.53
+    odds=10                                         320  0.1125   +12.5%  +0.75
+    odds=11                                         236  0.1610   +77.1%  +3.75
+    odds=12                                         169  0.0947   +13.6%  +0.53
+    odds=13                                         166  0.1084   +41.0%  +1.52
+  by pirate (cells with >=100 bets):
+    Young Sproggie                                  234  0.1496    -2.6%  -0.15
+    Orvinn the First Mate                           170  0.1059    +8.2%  +0.37
+    Sir Edmund Ogletree                             393  0.1476   +32.1%  +2.18
+    Peg Leg Percival                                119  0.1429   +37.0%  +1.35
+    Bonnie Pip Culliford                            131  0.0840   -39.7%  -1.67
+    Puffo the Waister                               327  0.1651   +39.8%  +2.51
+    Captain Crossblades                             120  0.1417    +0.0%  +0.00
+    Ned the Skipper                                 166  0.2108    +5.4%  +0.31
+    Franchisco Corvallio                            138  0.2101   +26.1%  +1.29
+    Admiral Blackbeard                              347  0.1441    +9.8%  +0.68
+    Buck Cutlass                                    130  0.1308   -12.3%  -0.59
+    The Tailhook Kid                                103  0.1650    +6.8%  +0.29
+
+------------------------------------------------------------------------------
+2. Out-of-sample replication in time
+------------------------------------------------------------------------------
+  slice                                            bets      WR      ROI      z
+  a) headline strategy (EV>=1.15, odds>=3) by fifths of the dataset:
+    days 0-1128                                     563  0.1616   +32.3%  +2.87
+    days 1128-2257                                  506  0.1383    +5.1%  +0.43
+    days 2257-3385                                  544  0.1691   +19.1%  +1.67
+    days 3385-4514                                  623  0.1413    +4.5%  +0.42
+    days 4514-5643                                  428  0.1565    +8.9%  +0.70
+  b) the same, first half vs second half:
+    first half                                     1336  0.1497   +16.5%  +2.25
+    second half                                    1328  0.1566   +11.9%  +1.63
+  c) odds=11 raw bin by fifths:
+    days 0-1128                                     640  0.1000   +10.0%  +0.80
+    days 1128-2257                                  631  0.0903    -0.6%  -0.05
+    days 2257-3385                                  627  0.0861    -5.3%  -0.42
+    days 3385-4514                                  632  0.1108   +21.8%  +1.74
+    days 4514-5643                                  620  0.1048   +15.3%  +1.21
+  d) odds=11 + EV>=1.10 by half:
+    first half                                      192  0.1406   +54.7%  +2.40
+    second half                                     161  0.1491   +64.0%  +2.57
+
+------------------------------------------------------------------------------
+3. Strict walk-forward: pick the rule on early data, bet it on later data
+------------------------------------------------------------------------------
+  Rule space: (min odds in {3,6,9,11}, threshold T in {1.0,1.05,...,1.3}),
+  chosen by highest z on the training window, then applied out-of-sample.
+  protocol                                         bets      WR      ROI      z
+  train first 50% -> test last 50%: picked odds>=9, T=1.15 (train z=+3.65)
+    out-of-sample result                            591  0.1049   +10.5%  +0.82
+  train first 2/3 -> test last 1/3: picked odds>=9, T=1.15 (train z=+3.87)
+    out-of-sample result                            378  0.0926    -0.8%  -0.05
+  Rolling-origin: retrain the choice every fifth, bet the next fifth:
+    window 1: rule odds>=9 T=1.15 ->   226 bets, ROI +32.7%
+    window 2: rule odds>=9 T=1.15 ->   251 bets, ROI +17.5%
+    window 3: rule odds>=9 T=1.15 ->   280 bets, ROI +8.9%
+    window 4: rule odds>=9 T=1.15 ->   185 bets, ROI +6.5%
+    combined walk-forward: 942 bets, ROI +16.5%
+
+------------------------------------------------------------------------------
+4. Necessary condition — does the NN rank pirates WITHIN an odds bin?
+------------------------------------------------------------------------------
+  If the odds maker's p is the truth, the bin still spans p in (1/(N+1), 1/N],
+  so within-bin ranking ability is expected and is NOT itself a falsification.
+  It only tells us the NN has resolution to work with.
+  odds   bets      Q1      Q2      Q3      Q4      Q5  trend z     1/N
+     3  12203  0.2634  0.2724  0.2832  0.3027  0.3168     4.73  0.3333
+     4   9452  0.2068  0.2063  0.2247  0.2418  0.2439     3.61  0.2500
+     5   8797  0.1670  0.1882  0.1852  0.1865  0.1910     1.58  0.2000
+     6   4969  0.1781  0.1529  0.1640  0.1569  0.1601    -0.86  0.1667
+     7   5384  0.1216  0.1439  0.1393  0.1300  0.1431     0.88  0.1429
+     8   2840  0.1004  0.1092  0.1373  0.1268  0.1408     2.26  0.1250
+     9   2879  0.1319  0.0972  0.1163  0.1024  0.1200    -0.45  0.1111
+    10   3067  0.1156  0.1060  0.0863  0.1077  0.1011    -0.70  0.1000
+    11   3150  0.0937  0.0794  0.0889  0.1032  0.1270     2.41  0.0909
+    12   3295  0.0683  0.0744  0.0744  0.1108  0.0789     1.71  0.0833
+    13  24670  0.0168  0.0282  0.0411  0.0551  0.0669    14.13  0.0769
+  Stouffer-combined trend z across bins = 8.84
+
+  Top-quintile WR vs the bin ceiling 1/N (this IS the falsification test):
+  odds   bets    Q5 WR      1/N      ROI      z
+     3   2440   0.3168   0.3333    -5.0%  -1.73
+     4   1890   0.2439   0.2500    -2.4%  -0.61
+     5   1759   0.1910   0.2000    -4.5%  -0.94
+     6    993   0.1601   0.1667    -3.9%  -0.55
+     7   1076   0.1431   0.1429     0.2%   0.02
+     8    568   0.1408   0.1250    12.7%   1.14
+     9    575   0.1200   0.1111     8.0%   0.68
+    10    613   0.1011   0.1000     1.1%   0.09
+    11    630   0.1270   0.0909    39.7%   3.15
+    12    659   0.0789   0.0833    -5.3%  -0.41
+    13   4934   0.0669   0.0769   -13.1%  -2.65
+
+------------------------------------------------------------------------------
+5. Robustness of the headline pocket to the choice of NN
+------------------------------------------------------------------------------
+  selection                                        bets      WR      ROI      z
+    market: EV>=1.15                               2664  0.1532   +14.2%  +2.75
+    base: EV>=1.15                                 8677  0.1326    +6.2%  +2.01
+    ident: EV>=1.15                                8371  0.1353    +6.6%  +2.11
+    all three agree EV>=1.15                       1813  0.1544   +19.9%  +3.10
+    exactly one model says EV>=1.15                4159  0.1390    -0.2%  -0.04
+
+------------------------------------------------------------------------------
+6. How many independent chances did the search have?
+------------------------------------------------------------------------------
+  Counting the tests run across all three scripts: 11 odds bins, 160
+  (pirate x odds) cells, 210 (odds x context) cells, 340 (pirate x food)
+  cells, 11 EV thresholds, 57 (odds,T) cells, 3 NN variants.
+  A z of 2.75 on one of ~800 correlated cells is unremarkable; the
+  boundary-null bootstrap already returned FWER p=0.03 for the threshold
+  family alone, and p=0.07 for the (odds,T) family. Neither survives
+  the full search, which is why replication above is the deciding test.
+
