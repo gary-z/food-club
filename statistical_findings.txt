@@ -519,6 +519,58 @@
     folds only, so p_nn carries no in-sample optimism.
 
 
+## Does the published line add information?
+
+49. **The opening line adds a small but real increment over the NN, and it is a
+    legacy-era effect.** Conditional logit over the four slots of an arena,
+    scored out-of-fold on the same folds as nn_truth.py:
+      published line alone        -1.08224
+      NN alone                    -1.07285
+      NN + line                   -1.07081
+      NN clamped into odds tiles  -1.07033
+    NN+line minus NN alone = +0.00204 per arena (SE 0.00043, t=+4.76). Clamping
+    p_nn into the finding-41 tiles and renormalising does slightly better
+    (+0.00252, t=+4.85) with no fitted parameters, which is what
+    sim/src/food_unified.rs eval_pmf_clamped and docs/foodclub.js already do.
+    Split by era: legacy +0.00238 (t=+4.96), modern +0.00077 (t=+0.81, n=5965,
+    so an increment up to ~+0.0026 cannot be excluded there).
+    The increment is NOT concentrated where our features are structurally blind:
+    legacy arenas containing Orvinn +0.00159 (t=1.47) vs +0.00257 elsewhere
+    (t=4.82); arenas containing a finding-46 twin pair +0.00126 (t=1.21) vs
+    +0.00221 elsewhere (t=4.71). So it is neither the pre-PHP-fix Orvinn quirk
+    nor the twin distinction, just a broad small piece of knowledge.
+    Note the line alone is clearly worse than the NN (-1.0822 vs -1.0729): the
+    published output carries less information than our model overall, it just
+    is not fully redundant with it.
+    current_odds (21375 arenas, both eras): alone -1.08461, NN+current -1.07230
+    (+0.00179, t=+3.70), and it adds nothing beyond the opening line
+    (NN+open+cur minus NN+open = -0.00026, t=-1.35). The day's betting volume
+    therefore contributes no information the opening line does not already have,
+    which closes the question left open in finding 28.
+    Reproduce: odds_signal_test.py
+
+50. **Bucketing does not remove all the edge -- percent rounding leaves the top
+    of each tile positive-EV.** This refines finding 27. Because pct is rounded
+    to a whole number BEFORE 1/p is floored, a pirate's true probability can
+    exceed the published implied probability: with pct = round(100p) and
+    odds = floor(100/pct), p can reach (pct+0.5)/100, so EV can reach
+    odds*(pct+0.5)/100 -- 1.005 to 1.050 for odds 3..12, e.g. pct=9 -> odds 11
+    pays 11 * 0.095 = 1.045. Observed EV = odds * win rate per bucket:
+      odds  2: 1.047     odds  6: 0.974     odds 10: 1.034
+      odds  3: 0.863     odds  7: 0.949     odds 11: 1.083
+      odds  4: 0.899     odds  8: 0.983     odds 12: 0.976
+      odds  5: 0.918     odds  9: 1.022     odds 13: 0.541
+    Pooled odds 9/10/11: 9096 bets, ROI +4.69% +- 3.22% (z=+1.46) -- the same
+    size as the odds=2 edge (+4.68%, z=+8.41) but with far less power because
+    per-bet variance scales as odds^2. This is a concrete mechanism for the
+    odds=11 anomaly in finding 31 (+29.2% ROI, z=+2.94, failed Bonferroni), and
+    it says the floor rule does NOT guarantee EV <= 1 at odds >= 3 the way
+    finding 27 assumed. Not yet established, but it is now a specific,
+    pre-specified hypothesis: bet high-odds pirates whose model probability sits
+    in the upper half of the percent tile.
+    Reproduce: odds_signal_test.py section 3.
+
+
 ## Best models
 
 - **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,
