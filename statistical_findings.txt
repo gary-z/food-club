@@ -385,6 +385,71 @@
     equally well.
     Reproduce: bin NN and odds-maker LL by total food relevance across pirates.
 
+## Opening odds lower bound
+
+41. **The floor rule's LOWER bound holds for odds 3-12 and fails only at the 13
+    clamp.** Findings 27/28 used the upper half of `N = floor(1/p)` (p <= 1/N, so
+    EV = p*N <= 1, no edge). This is the mirror test: floor(1/p) = N also implies
+    p > 1/(N+1), so a payout of N+1 should always be at least break even. We tried
+    hard to falsify it and could not, except at N=13.
+      N=3:  EV(4)  = 1.151 [1.119, 1.183]      N=9:   EV(10) = 1.136 [1.022, 1.257]
+      N=4:  EV(5)  = 1.124 [1.082, 1.166]      N=10:  EV(11) = 1.137 [1.021, 1.261]
+      N=5:  EV(6)  = 1.102 [1.053, 1.151]      N=11:  EV(12) = 1.181 [1.059, 1.312]
+      N=6:  EV(7)  = 1.137 [1.066, 1.211]      N=12:  EV(13) = 1.057 [0.939, 1.186]
+      N=7:  EV(8)  = 1.085 [1.012, 1.160]      N=13:  EV(14) = 0.583 [0.548, 0.619]
+      N=8:  EV(9)  = 1.106 [0.999, 1.220]      pooled 3-12 = 1.123 [1.102, 1.145]
+    **N=13 is falsified decisively**: WR=0.0416 vs the 1/14=0.0714 the hypothesis
+    needs, z=-18.2, exact one-sided p=8.5e-86 (n=24670). Cause is structural, not
+    statistical — floor(1/p) is clamped at 13, so odds=13 means only p <= 1/13 with
+    no lower bound, and the bin absorbs everything down to p~0 (86% of 13s have
+    model p below 1/14; the bin's median model p is 0.040). The break-even payout
+    for an average 13 is 24:1, not 14:1. Filtering by model p rescues it: the top
+    10% of 13s by model p reach EV(14) = 1.033, the top 25% only 0.940.
+    Falsification attempts for N=3-12 that all came back negative:
+      - model-free arena consistency: sum of the four floor bounds must stay under
+        1 or the hypothesis self-contradicts. 0/28215 arenas violate it; the
+        closest approach is 0.9762 (slack 0.024).
+      - 342 single-covariate subgroups (pirate, era, position, nf, na, number of
+        2:1 opponents, arena name) x odds level: none survive Bonferroni; the worst
+        is N=12/pos3 at nominal p=0.025.
+      - adversarial selection by the Model 4 / Model 1 PMF probabilities: bottom 1%
+        by model p gives EV=0.748 (nominal p=0.008, fails Bonferroni over the
+        threshold sweep); every slice of 5% or wider is >= 0.97.
+      - a logistic selector with pirate FE, position, nf, na, both model logits and
+        opponent strength, trained on odd days and applied to even days (and vice
+        versa): the two halves disagree in sign (bottom decile EV=0.905 one way,
+        1.002 the other), i.e. noise.
+      - discovery/validation split over 241 subgroups: worst discovery-half z=-1.48,
+        family-wise p=1.000 (the null min-z 5th percentile is -3.30); none of the
+        six worst replicate out of sample.
+      - rolling windows of 250/500/1000 days: worst z=-0.78, family-wise p=1.000.
+      - Orvinn, pre-specified from finding 34 as the one pirate the odds maker is
+        known to mis-rate: pooled EV=1.052, and na>=2 (where the stale allergy
+        penalty inflates his odds) is 1.233 as the mechanism predicts. The only
+        interesting cell is na<=1 modern, EV=0.749 (n=474, nominal p=0.019), which
+        does not replicate in legacy (EV=1.048) and is one of 38 pirate x era cells.
+      - parlays: 2-leg EV=1.055, 3-leg EV=1.482 built from the worst model-p leg
+        per arena (arena outcomes are independent, finding 12, so >1 EV legs
+        multiply).
+    Power: pooled over N=3-12 the data would have caught a 2.6% EV shortfall at 80%
+    power; per level, 3.9% at N=3 rising to 15.0% at N=12. So "N+1 is break even"
+    is confirmed to within a couple of percent for N=3-12, and the observed margin
+    (5.7-18.1% above break even) is far larger than that resolution.
+    Practical note: `odds_prob_bounds` in backtest.rs already returns (0, 1/13) for
+    odds=13, so it is correct. `make_bets_current_exploit_floor` hardcodes
+    `1.0/(odds+1)` instead, which would be invalid for an opening-13 pirate — but
+    current odds are capped at 13, so a 13 can never satisfy `cur >= odds+1` and the
+    path is unreachable. Jumped pirates at N=3-12 realise WR/floor ratios of
+    1.02-1.17, i.e. the floor the strategy assumes is sound where it is used.
+    Reproduce: for every historical arena, dump per-pirate win probabilities from
+    the Model 4 and Model 1 PMF engines (as in backtest.rs; check the PMF against a
+    plain monte carlo first — worst deviation should be ~2 sd at 400k trials/arena).
+    Then per opening odds level test WR >= 1/(N+1) with a one-sided exact binomial,
+    and repeat under each slicing above (subgroup scans with Bonferroni, bottom-
+    quantile selection by model p, an out-of-sample logistic selector, a
+    discovery/validation split with bootstrap family-wise calibration, rolling
+    windows, and parlays built from the worst model-p leg per arena).
+
 ## Best models
 
 - **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,
