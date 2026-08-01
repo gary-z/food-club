@@ -65,9 +65,13 @@
   .make-bet:hover { background: #c73550; }
 
   /* Bet amount input: sits in the last row, immediately left of the first Bet
-     button. Spinners are hidden so the column stays as narrow as the odds. */
-  .bet-amount { width: 64px; background: #16213e; border: 1px solid #333; color: #fff; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 11px; text-align: right; appearance: textfield; -moz-appearance: textfield; }
+     button. Spinners are hidden so the column stays as narrow as the odds.
+     The NP unit sits in the input's right padding, so the amount stays right
+     aligned against it; pointer-events:none keeps clicks focusing the input. */
+  .bet-amount-wrap { position: relative; display: inline-block; }
+  .bet-amount { width: 80px; background: #16213e; border: 1px solid #333; color: #fff; padding: 2px 22px 2px 4px; border-radius: 3px; font-family: monospace; font-size: 11px; text-align: right; appearance: textfield; -moz-appearance: textfield; }
   .bet-amount::-webkit-outer-spin-button, .bet-amount::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .bet-amount-unit { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); color: #aaa; font-family: monospace; font-size: 11px; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -376,7 +380,9 @@ function renderMain(arenas, probs, bets, roundData) {
   // the column immediately before the Bet buttons.
   const maxBet = state.betAmount;
   const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
-  const betInput = `<input type="number" id="betAmountInput" class="bet-amount" min="1" value="${maxBet}" title="Bet amount" aria-label="Bet amount">`;
+  const betInput = `<span class="bet-amount-wrap">` +
+    `<input type="number" id="betAmountInput" class="bet-amount" min="1" value="${maxBet}" title="Bet amount in Neopoints" aria-label="Bet amount in Neopoints">` +
+    `<span class="bet-amount-unit">NP</span></span>`;
   html += '<tr>' + rowLead(`<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`, betInput);
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
