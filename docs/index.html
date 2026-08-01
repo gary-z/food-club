@@ -17,15 +17,18 @@
   .status.error { color: #e94560; }
   /* Main combined table */
   .main-table { width: 100%; border-collapse: collapse; }
+  /* Every column left of the bets is shrink-to-fit, so the table's surplus width
+     lands in the bet columns instead of padding out the data columns. */
+  .main-table col.shrink { width: 1%; }
   .main-table th { padding: 6px 8px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #333; text-align: center; white-space: nowrap; }
   .main-table th.left { text-align: left; }
   .main-table td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #1e1e3a; }
   .main-table td.left { text-align: left; }
 
   /* Arena name cell — rendered vertically to save horizontal space */
-  .arena-name { color: #e94560; font-weight: bold; text-align: center !important; vertical-align: middle; width: 1%; padding: 4px 2px; }
+  .arena-name { color: #e94560; font-weight: bold; text-align: center !important; vertical-align: middle; padding: 4px 2px; }
   .arena-name span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; letter-spacing: 1px; }
-  .main-table th.arena-head { width: 1%; padding: 6px 2px; }
+  .main-table th.arena-head { padding: 6px 2px; }
 
   /* Arena separator */
   .arena-sep td { border-bottom: 2px solid #333; height: 4px; padding: 0; }
@@ -49,8 +52,7 @@
   .odds-arrow { color: #4caf50; font-size: 10px; }
   .odds-down { color: #f44336; font-weight: bold; }
   .main-table td.edge-cell { text-align: right; }
-  /* width:1% keeps the odds columns shrink-to-fit instead of soaking up the table's surplus width */
-  .main-table th.odds-head, .main-table td.odds-cell { width: 1%; padding-left: 4px; padding-right: 4px; }
+  .main-table th.odds-head, .main-table td.odds-cell { padding-left: 4px; padding-right: 4px; }
   .main-table td.odds-cell { font-family: monospace; text-align: right; white-space: nowrap; }
   .odds-arrow-down { color: #f44336; font-size: 10px; }
 
@@ -58,10 +60,13 @@
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
   .bet-circle.filled { background: #5588cc; border-color: #5588cc; }
 
-  /* Bet row labels: one right-aligned cell spanning the pirate columns, so the
-     summary text never widens the Open/Curr columns it would otherwise sit in. */
+  /* Bet row labels: one right-aligned cell spanning the data columns, so the
+     summary text never widens the Open/Curr columns it would otherwise sit in.
+     The label itself is a fixed-width block flush against the bet columns, so
+     labels stay left-aligned with each other. */
   .main-table td.row-label { text-align: right; color: #aaa; white-space: nowrap; }
-  .sum-stat { font-family: monospace; color: #e0e0e0; margin-right: 16px; }
+  .row-label-text { display: inline-block; width: 84px; text-align: left; }
+  .sum-stat { font-family: monospace; color: #e0e0e0; margin-right: 12px; }
   .sum-label { color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
   .ev-positive { color: #4caf50; }
   .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
@@ -225,7 +230,9 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
     return sel;
   });
 
-  let html = '<table class="main-table"><thead><tr>';
+  let html = '<table class="main-table">';
+  html += `<colgroup><col class="shrink" span="8"><col span="${numBets}"></colgroup>`;
+  html += '<thead><tr>';
   html += '<th class="arena-head"></th>';
   html += '<th class="left">Pirate</th>';
   html += '<th>Prob</th>';
@@ -317,7 +324,8 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
   // Each summary row leads with a single right-aligned cell spanning the pirate
   // columns: an optional overall stat, then the label for the bet columns.
-  const rowLabel = (stat, label) => `<td colspan="8" class="row-label">${stat}${label}</td>`;
+  const rowLabel = (stat, label) =>
+    `<td colspan="8" class="row-label">${stat}<span class="row-label-text">${label}</span></td>`;
 
   // Odds row
   html += '<tr>' + rowLabel('', 'Odds');
