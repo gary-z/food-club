@@ -49,6 +49,8 @@
   .odds-arrow { color: #4caf50; font-size: 10px; }
   .odds-down { color: #f44336; font-weight: bold; }
   .main-table td.edge-cell { text-align: right; }
+  /* width:1% keeps the odds columns shrink-to-fit instead of soaking up the table's surplus width */
+  .main-table th.odds-head, .main-table td.odds-cell { width: 1%; padding-left: 4px; padding-right: 4px; }
   .main-table td.odds-cell { font-family: monospace; text-align: right; white-space: nowrap; }
   .odds-arrow-down { color: #f44336; font-size: 10px; }
 
@@ -56,9 +58,11 @@
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
   .bet-circle.filled { background: #5588cc; border-color: #5588cc; }
 
-  /* Summary values shown left of the bet row labels */
-  .main-table td.summary-val { font-family: monospace; text-align: right; white-space: nowrap; }
-  .sum-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  /* Bet row labels: one right-aligned cell spanning the pirate columns, so the
+     summary text never widens the Open/Curr columns it would otherwise sit in. */
+  .main-table td.row-label { text-align: right; color: #aaa; white-space: nowrap; }
+  .sum-stat { font-family: monospace; color: #e0e0e0; margin-right: 16px; }
+  .sum-label { color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
   .ev-positive { color: #4caf50; }
   .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
   .make-bet { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 3px; text-decoration: none; font-size: 11px; white-space: nowrap; }
@@ -228,8 +232,8 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '<th>Edge</th>';
   html += '<th>Fav</th>';
   html += '<th>Allr</th>';
-  html += '<th>Open</th>';
-  html += '<th>Curr</th>';
+  html += '<th class="odds-head">Open</th>';
+  html += '<th class="odds-head">Curr</th>';
   for (let b = 0; b < numBets; b++) {
     html += `<th>Bet ${b + 1}</th>`;
   }
@@ -311,17 +315,20 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Bet summary rows
   html += `<tr class="arena-sep"><td colspan="${8 + numBets}"></td></tr>`;
 
+  // Each summary row leads with a single right-aligned cell spanning the pirate
+  // columns: an optional overall stat, then the label for the bet columns.
+  const rowLabel = (stat, label) => `<td colspan="8" class="row-label">${stat}${label}</td>`;
+
   // Odds row
-  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Odds</td>';
+  html += '<tr>' + rowLabel('', 'Odds');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${bets[b].payout}:1</td>`;
   }
   html += '</tr>';
 
   // Prob row, with the overall bust chance to the left of the label
-  html += '<tr><td colspan="6"></td>';
-  html += `<td class="summary-val"><span class="sum-label">bust</span>${(bustProb * 100).toFixed(1)}%</td>`;
-  html += '<td class="left" style="color:#aaa">Prob.</td>';
+  const bustStat = `<span class="sum-stat"><span class="sum-label">bust</span>${(bustProb * 100).toFixed(1)}%</span>`;
+  html += '<tr>' + rowLabel(bustStat, 'Prob.');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
@@ -330,9 +337,8 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Expected row, with the total to the left of the label
   const totalNet = bets.reduce((sum, bet) => sum + (bet.ev - 1), 0);
   const totalCls = totalNet >= 0 ? 'ev-positive' : '';
-  html += '<tr><td colspan="6"></td>';
-  html += `<td class="summary-val ${totalCls}"><span class="sum-label">total</span>${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}</td>`;
-  html += '<td class="left" style="color:#aaa">Expected</td>';
+  const totalStat = `<span class="sum-stat ${totalCls}"><span class="sum-label">total</span>${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}</span>`;
+  html += '<tr>' + rowLabel(totalStat, 'Expected');
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
     const cls = net >= 0 ? 'ev-positive' : '';
@@ -343,8 +349,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Make Bet row, with the NeoFood Club link to the left of the buttons
   const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
   const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
-  html += '<tr><td colspan="7"></td>';
-  html += `<td class="left"><a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a></td>`;
+  html += '<tr>' + rowLabel('', `<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`);
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
