@@ -59,12 +59,12 @@
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
   .bet-circle.filled { background: #5588cc; border-color: #5588cc; }
 
-  /* Bet row labels: one cell spanning the data columns, aligned to the left edge
-     of the table. The overall stat sits in a fixed-width block so the labels
-     following it line up with each other. */
-  .main-table td.row-label { text-align: left; color: #aaa; white-space: nowrap; }
-  .sum-stat { display: inline-block; width: 96px; text-align: right; font-family: monospace; color: #e0e0e0; margin-right: 12px; }
-  .sum-label { color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  /* Bet summary rows: the overall stat and the NeoFood Club link sit at the left
+     edge of the table, while the row label stays in the column beside the bets. */
+  .main-table td.row-stat { text-align: left; white-space: nowrap; }
+  .main-table td.row-tag { text-align: left; color: #aaa; white-space: nowrap; }
+  .sum-stat { font-family: monospace; color: #e0e0e0; }
+  .sum-label { display: inline-block; min-width: 38px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
   .ev-positive { color: #4caf50; }
   .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
   .make-bet { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 3px; text-decoration: none; font-size: 11px; white-space: nowrap; }
@@ -317,23 +317,22 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Bet summary rows
   html += `<tr class="arena-sep"><td colspan="${8 + numBets}"></td></tr>`;
 
-  // Each summary row leads with a single cell spanning the data columns, aligned
-  // to the left edge of the table: an overall stat, then the label for the bet
-  // columns. The stat block is emitted even when empty so the labels line up.
+  // Each summary row leads with an overall stat at the table's left edge, then
+  // the row's label in the column immediately before the bet columns.
   const sumStat = (name, value, cls) =>
     `<span class="sum-stat ${cls || ''}"><span class="sum-label">${name}</span>${value}</span>`;
-  const rowLabel = (stat, label) =>
-    `<td colspan="8" class="row-label">${stat || '<span class="sum-stat"></span>'}${label}</td>`;
+  const rowLead = (stat, label) =>
+    `<td colspan="7" class="row-stat">${stat}</td><td class="row-tag">${label}</td>`;
 
   // Odds row
-  html += '<tr>' + rowLabel('', 'Odds');
+  html += '<tr>' + rowLead('', 'Odds');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${bets[b].payout}:1</td>`;
   }
   html += '</tr>';
 
   // Prob row, with the overall bust chance to the left of the label
-  html += '<tr>' + rowLabel(sumStat('bust', `${(bustProb * 100).toFixed(1)}%`), 'Prob.');
+  html += '<tr>' + rowLead(sumStat('bust', `${(bustProb * 100).toFixed(1)}%`), 'Prob.');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
@@ -342,7 +341,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Expected row, with the total to the left of the label
   const totalNet = bets.reduce((sum, bet) => sum + (bet.ev - 1), 0);
   const totalStat = sumStat('total', `${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}`, totalNet >= 0 ? 'ev-positive' : '');
-  html += '<tr>' + rowLabel(totalStat, 'Expected');
+  html += '<tr>' + rowLead(totalStat, 'Expected');
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
     const cls = net >= 0 ? 'ev-positive' : '';
@@ -353,7 +352,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Make Bet row, with the NeoFood Club link to the left of the buttons
   const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
   const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
-  html += '<tr>' + rowLabel('', `<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`);
+  html += '<tr>' + rowLead(`<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`, '');
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
