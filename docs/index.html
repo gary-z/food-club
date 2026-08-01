@@ -16,10 +16,9 @@
   .status { margin: 8px 0; font-size: 13px; color: #aaa; }
   .status.error { color: #e94560; }
   /* Main combined table */
-  .main-table { width: 100%; border-collapse: collapse; }
-  /* Every column left of the bets is shrink-to-fit, so the table's surplus width
-     lands in the bet columns instead of padding out the data columns. */
-  .main-table col.shrink { width: 1%; }
+  /* width:auto so every column sizes to its content; stretching the table to the
+     full page width would only spread the bet columns apart. */
+  .main-table { width: auto; border-collapse: collapse; }
   .main-table th { padding: 6px 8px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #333; text-align: center; white-space: nowrap; }
   .main-table th.left { text-align: left; }
   .main-table td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #1e1e3a; }
@@ -60,13 +59,11 @@
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
   .bet-circle.filled { background: #5588cc; border-color: #5588cc; }
 
-  /* Bet row labels: one right-aligned cell spanning the data columns, so the
-     summary text never widens the Open/Curr columns it would otherwise sit in.
-     The label itself is a fixed-width block flush against the bet columns, so
-     labels stay left-aligned with each other. */
-  .main-table td.row-label { text-align: right; color: #aaa; white-space: nowrap; }
-  .row-label-text { display: inline-block; width: 84px; text-align: left; }
-  .sum-stat { font-family: monospace; color: #e0e0e0; margin-right: 12px; }
+  /* Bet row labels: one cell spanning the data columns, aligned to the left edge
+     of the table. The overall stat sits in a fixed-width block so the labels
+     following it line up with each other. */
+  .main-table td.row-label { text-align: left; color: #aaa; white-space: nowrap; }
+  .sum-stat { display: inline-block; width: 96px; text-align: right; font-family: monospace; color: #e0e0e0; margin-right: 12px; }
   .sum-label { color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
   .ev-positive { color: #4caf50; }
   .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
@@ -230,9 +227,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
     return sel;
   });
 
-  let html = '<table class="main-table">';
-  html += `<colgroup><col class="shrink" span="8"><col span="${numBets}"></colgroup>`;
-  html += '<thead><tr>';
+  let html = '<table class="main-table"><thead><tr>';
   html += '<th class="arena-head"></th>';
   html += '<th class="left">Pirate</th>';
   html += '<th>Prob</th>';
@@ -322,10 +317,13 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Bet summary rows
   html += `<tr class="arena-sep"><td colspan="${8 + numBets}"></td></tr>`;
 
-  // Each summary row leads with a single right-aligned cell spanning the pirate
-  // columns: an optional overall stat, then the label for the bet columns.
+  // Each summary row leads with a single cell spanning the data columns, aligned
+  // to the left edge of the table: an overall stat, then the label for the bet
+  // columns. The stat block is emitted even when empty so the labels line up.
+  const sumStat = (name, value, cls) =>
+    `<span class="sum-stat ${cls || ''}"><span class="sum-label">${name}</span>${value}</span>`;
   const rowLabel = (stat, label) =>
-    `<td colspan="8" class="row-label">${stat}<span class="row-label-text">${label}</span></td>`;
+    `<td colspan="8" class="row-label">${stat || '<span class="sum-stat"></span>'}${label}</td>`;
 
   // Odds row
   html += '<tr>' + rowLabel('', 'Odds');
@@ -335,8 +333,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '</tr>';
 
   // Prob row, with the overall bust chance to the left of the label
-  const bustStat = `<span class="sum-stat"><span class="sum-label">bust</span>${(bustProb * 100).toFixed(1)}%</span>`;
-  html += '<tr>' + rowLabel(bustStat, 'Prob.');
+  html += '<tr>' + rowLabel(sumStat('bust', `${(bustProb * 100).toFixed(1)}%`), 'Prob.');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
@@ -344,8 +341,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
   // Expected row, with the total to the left of the label
   const totalNet = bets.reduce((sum, bet) => sum + (bet.ev - 1), 0);
-  const totalCls = totalNet >= 0 ? 'ev-positive' : '';
-  const totalStat = `<span class="sum-stat ${totalCls}"><span class="sum-label">total</span>${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}</span>`;
+  const totalStat = sumStat('total', `${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}`, totalNet >= 0 ? 'ev-positive' : '');
   html += '<tr>' + rowLabel(totalStat, 'Expected');
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
