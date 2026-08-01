@@ -22,8 +22,10 @@
   .main-table td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #1e1e3a; }
   .main-table td.left { text-align: left; }
 
-  /* Arena name cell */
-  .arena-name { color: #e94560; font-weight: bold; text-align: left !important; vertical-align: middle; }
+  /* Arena name cell — rendered vertically to save horizontal space */
+  .arena-name { color: #e94560; font-weight: bold; text-align: center !important; vertical-align: middle; width: 1%; padding: 4px 2px; }
+  .arena-name span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; letter-spacing: 1px; }
+  .main-table th.arena-head { width: 1%; padding: 6px 2px; }
 
   /* Arena separator */
   .arena-sep td { border-bottom: 2px solid #333; height: 4px; padding: 0; }
@@ -54,12 +56,11 @@
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
   .bet-circle.filled { background: #5588cc; border-color: #5588cc; }
 
-  /* Summary section */
-  .summary-table { margin-top: 16px; border-collapse: collapse; }
-  .summary-table td { padding: 4px 12px; font-size: 13px; }
-  .summary-table .label { color: #aaa; text-align: right; }
-  .summary-table .value { font-family: monospace; }
+  /* Summary values shown left of the bet row labels */
+  .main-table td.summary-val { font-family: monospace; text-align: right; white-space: nowrap; }
+  .sum-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
   .ev-positive { color: #4caf50; }
+  .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
   .make-bet { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 3px; text-decoration: none; font-size: 11px; white-space: nowrap; }
   .make-bet:hover { background: #c73550; }
 </style>
@@ -185,8 +186,33 @@ function makeBetUrl(bet, arenas, maxBet) {
   return `https://www.neopets.com/pirates/process_foodclub.phtml?${params.join('&')}`;
 }
 
+// Bust probability: P(no bet wins), over all 4^5 = 1024 arena outcomes
+function computeBustProb(probs, bets) {
+  let bustProb = 0;
+  for (let o = 0; o < 1024; o++) {
+    // Decode outcome: which pirate wins each arena (0-3)
+    const winners = [o & 3, (o >> 2) & 3, (o >> 4) & 3, (o >> 6) & 3, (o >> 8) & 3];
+    let outcomeProb = 1;
+    for (let a = 0; a < 5; a++) outcomeProb *= probs[a][winners[a]];
+    if (outcomeProb < 1e-15) continue;
+
+    // Check if any bet wins this outcome
+    let anyBetWins = false;
+    for (const bet of bets) {
+      let betWins = true;
+      for (const s of bet.selections) {
+        if (winners[s.arena] !== s.pirateIdx) { betWins = false; break; }
+      }
+      if (betWins) { anyBetWins = true; break; }
+    }
+    if (!anyBetWins) bustProb += outcomeProb;
+  }
+  return bustProb;
+}
+
 function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   const numBets = bets.length;
+  const bustProb = computeBustProb(probs, bets);
 
   // Build bet selection lookup: betSelections[betIdx][arenaIdx] = pirateIdx or -1
   const betSelections = bets.map(bet => {
@@ -196,7 +222,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   });
 
   let html = '<table class="main-table"><thead><tr>';
-  html += '<th class="left">Arena</th>';
+  html += '<th class="arena-head"></th>';
   html += '<th class="left">Pirate</th>';
   html += '<th>Prob</th>';
   html += '<th>Edge</th>';
@@ -225,7 +251,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
       // Arena name (rowspan on first pirate)
       if (p === 0) {
-        html += `<td class="arena-name" rowspan="4">${arenaNames[a]}</td>`;
+        html += `<td class="arena-name" rowspan="4"><span>${arenaNames[a]}</span></td>`;
       }
 
       // Pirate name tag
@@ -292,27 +318,33 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   }
   html += '</tr>';
 
-  // Prob row
-  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Prob.</td>';
+  // Prob row, with the overall bust chance to the left of the label
+  html += '<tr><td colspan="6"></td>';
+  html += `<td class="summary-val"><span class="sum-label">bust</span>${(bustProb * 100).toFixed(1)}%</td>`;
+  html += '<td class="left" style="color:#aaa">Prob.</td>';
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
   html += '</tr>';
 
-  // Net Expected row
-  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Net Expected</td>';
-  let totalNet = 0;
+  // Expected row, with the total to the left of the label
+  const totalNet = bets.reduce((sum, bet) => sum + (bet.ev - 1), 0);
+  const totalCls = totalNet >= 0 ? 'ev-positive' : '';
+  html += '<tr><td colspan="6"></td>';
+  html += `<td class="summary-val ${totalCls}"><span class="sum-label">total</span>${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}</td>`;
+  html += '<td class="left" style="color:#aaa">Expected</td>';
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
-    totalNet += net;
     const cls = net >= 0 ? 'ev-positive' : '';
     html += `<td class="num ${cls}">${net >= 0 ? '+' : ''}${net.toFixed(2)}</td>`;
   }
   html += '</tr>';
 
-  // Make Bet row
+  // Make Bet row, with the NeoFood Club link to the left of the buttons
   const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
-  html += '<tr><td colspan="8"></td>';
+  const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
+  html += '<tr><td colspan="7"></td>';
+  html += `<td class="left"><a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a></td>`;
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
@@ -320,36 +352,6 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '</tr>';
 
   html += '</tbody></table>';
-
-  // Compute bust probability: P(no bet wins)
-  // Enumerate all 4^5 = 1024 arena outcomes
-  let bustProb = 0;
-  for (let o = 0; o < 1024; o++) {
-    // Decode outcome: which pirate wins each arena (0-3)
-    const winners = [o & 3, (o >> 2) & 3, (o >> 4) & 3, (o >> 6) & 3, (o >> 8) & 3];
-    let outcomeProb = 1;
-    for (let a = 0; a < 5; a++) outcomeProb *= probs[a][winners[a]];
-    if (outcomeProb < 1e-15) continue;
-
-    // Check if any bet wins this outcome
-    let anyBetWins = false;
-    for (const bet of bets) {
-      let betWins = true;
-      for (const s of bet.selections) {
-        if (winners[s.arena] !== s.pirateIdx) { betWins = false; break; }
-      }
-      if (betWins) { anyBetWins = true; break; }
-    }
-    if (!anyBetWins) bustProb += outcomeProb;
-  }
-
-  // Summary
-  const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
-  html += '<table class="summary-table">';
-  html += `<tr><td class="label">Total Net Expected:</td><td class="value ev-positive">+${totalNet.toFixed(2)}</td></tr>`;
-  html += `<tr><td class="label">Bust Chance:</td><td class="value">${(bustProb * 100).toFixed(1)}%</td></tr>`;
-  html += `<tr><td class="label">NeoFood Club:</td><td class="value"><a href="${nfcUrl}" target="_blank" style="color:#5588cc">${nfcUrl}</a></td></tr>`;
-  html += '</table>';
 
   document.getElementById('mainContent').innerHTML = html;
 }
