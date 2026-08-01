@@ -16,14 +16,18 @@
   .status { margin: 8px 0; font-size: 13px; color: #aaa; }
   .status.error { color: #e94560; }
   /* Main combined table */
-  .main-table { width: 100%; border-collapse: collapse; }
+  /* width:auto so every column sizes to its content; stretching the table to the
+     full page width would only spread the bet columns apart. */
+  .main-table { width: auto; border-collapse: collapse; }
   .main-table th { padding: 6px 8px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #333; text-align: center; white-space: nowrap; }
   .main-table th.left { text-align: left; }
   .main-table td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #1e1e3a; }
   .main-table td.left { text-align: left; }
 
-  /* Arena name cell */
-  .arena-name { color: #e94560; font-weight: bold; text-align: left !important; vertical-align: middle; }
+  /* Arena name cell — rendered vertically to save horizontal space */
+  .arena-name { color: #e94560; font-weight: bold; text-align: center !important; vertical-align: middle; padding: 4px 2px; }
+  .arena-name span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; letter-spacing: 1px; }
+  .main-table th.arena-head { padding: 6px 2px; }
 
   /* Arena separator */
   .arena-sep td { border-bottom: 2px solid #333; height: 4px; padding: 0; }
@@ -47,6 +51,7 @@
   .odds-arrow { color: #4caf50; font-size: 10px; }
   .odds-down { color: #f44336; font-weight: bold; }
   .main-table td.edge-cell { text-align: right; }
+  .main-table th.odds-head, .main-table td.odds-cell { padding-left: 4px; padding-right: 4px; }
   .main-table td.odds-cell { font-family: monospace; text-align: right; white-space: nowrap; }
   .odds-arrow-down { color: #f44336; font-size: 10px; }
 
@@ -54,12 +59,14 @@
   .bet-circle { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #445; background: transparent; }
   .bet-circle.filled { background: #5588cc; border-color: #5588cc; }
 
-  /* Summary section */
-  .summary-table { margin-top: 16px; border-collapse: collapse; }
-  .summary-table td { padding: 4px 12px; font-size: 13px; }
-  .summary-table .label { color: #aaa; text-align: right; }
-  .summary-table .value { font-family: monospace; }
+  /* Bet summary rows: the overall stat and the NeoFood Club link sit at the left
+     edge of the table, while the row label stays in the column beside the bets. */
+  .main-table td.row-stat { text-align: left; white-space: nowrap; }
+  .main-table td.row-tag { text-align: left; color: #aaa; white-space: nowrap; }
+  .sum-stat { font-family: monospace; color: #e0e0e0; }
+  .sum-label { display: inline-block; min-width: 38px; color: #aaa; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
   .ev-positive { color: #4caf50; }
+  .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
   .make-bet { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 3px; text-decoration: none; font-size: 11px; white-space: nowrap; }
   .make-bet:hover { background: #c73550; }
 </style>
@@ -185,8 +192,33 @@ function makeBetUrl(bet, arenas, maxBet) {
   return `https://www.neopets.com/pirates/process_foodclub.phtml?${params.join('&')}`;
 }
 
+// Bust probability: P(no bet wins), over all 4^5 = 1024 arena outcomes
+function computeBustProb(probs, bets) {
+  let bustProb = 0;
+  for (let o = 0; o < 1024; o++) {
+    // Decode outcome: which pirate wins each arena (0-3)
+    const winners = [o & 3, (o >> 2) & 3, (o >> 4) & 3, (o >> 6) & 3, (o >> 8) & 3];
+    let outcomeProb = 1;
+    for (let a = 0; a < 5; a++) outcomeProb *= probs[a][winners[a]];
+    if (outcomeProb < 1e-15) continue;
+
+    // Check if any bet wins this outcome
+    let anyBetWins = false;
+    for (const bet of bets) {
+      let betWins = true;
+      for (const s of bet.selections) {
+        if (winners[s.arena] !== s.pirateIdx) { betWins = false; break; }
+      }
+      if (betWins) { anyBetWins = true; break; }
+    }
+    if (!anyBetWins) bustProb += outcomeProb;
+  }
+  return bustProb;
+}
+
 function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   const numBets = bets.length;
+  const bustProb = computeBustProb(probs, bets);
 
   // Build bet selection lookup: betSelections[betIdx][arenaIdx] = pirateIdx or -1
   const betSelections = bets.map(bet => {
@@ -196,14 +228,14 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   });
 
   let html = '<table class="main-table"><thead><tr>';
-  html += '<th class="left">Arena</th>';
+  html += '<th class="arena-head"></th>';
   html += '<th class="left">Pirate</th>';
   html += '<th>Prob</th>';
   html += '<th>Edge</th>';
   html += '<th>Fav</th>';
   html += '<th>Allr</th>';
-  html += '<th>Open</th>';
-  html += '<th>Curr</th>';
+  html += '<th class="odds-head">Open</th>';
+  html += '<th class="odds-head">Curr</th>';
   for (let b = 0; b < numBets; b++) {
     html += `<th>Bet ${b + 1}</th>`;
   }
@@ -225,7 +257,7 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
 
       // Arena name (rowspan on first pirate)
       if (p === 0) {
-        html += `<td class="arena-name" rowspan="4">${arenaNames[a]}</td>`;
+        html += `<td class="arena-name" rowspan="4"><span>${arenaNames[a]}</span></td>`;
       }
 
       // Pirate name tag
@@ -285,34 +317,42 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   // Bet summary rows
   html += `<tr class="arena-sep"><td colspan="${8 + numBets}"></td></tr>`;
 
+  // Each summary row leads with an overall stat at the table's left edge, then
+  // the row's label in the column immediately before the bet columns.
+  const sumStat = (name, value, cls) =>
+    `<span class="sum-stat ${cls || ''}"><span class="sum-label">${name}</span>${value}</span>`;
+  const rowLead = (stat, label) =>
+    `<td colspan="7" class="row-stat">${stat}</td><td class="row-tag">${label}</td>`;
+
   // Odds row
-  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Odds</td>';
+  html += '<tr>' + rowLead('', 'Odds');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${bets[b].payout}:1</td>`;
   }
   html += '</tr>';
 
-  // Prob row
-  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Prob.</td>';
+  // Prob row, with the overall bust chance to the left of the label
+  html += '<tr>' + rowLead(sumStat('bust', `${(bustProb * 100).toFixed(1)}%`), 'Prob.');
   for (let b = 0; b < numBets; b++) {
     html += `<td class="num">${(bets[b].winProb * 100).toFixed(1)}%</td>`;
   }
   html += '</tr>';
 
-  // Net Expected row
-  html += '<tr><td colspan="7"></td><td class="left" style="color:#aaa">Net Expected</td>';
-  let totalNet = 0;
+  // Expected row, with the total to the left of the label
+  const totalNet = bets.reduce((sum, bet) => sum + (bet.ev - 1), 0);
+  const totalStat = sumStat('total', `${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}`, totalNet >= 0 ? 'ev-positive' : '');
+  html += '<tr>' + rowLead(totalStat, 'Expected');
   for (let b = 0; b < numBets; b++) {
     const net = bets[b].ev - 1;
-    totalNet += net;
     const cls = net >= 0 ? 'ev-positive' : '';
     html += `<td class="num ${cls}">${net >= 0 ? '+' : ''}${net.toFixed(2)}</td>`;
   }
   html += '</tr>';
 
-  // Make Bet row
+  // Make Bet row, with the NeoFood Club link to the left of the buttons
   const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
-  html += '<tr><td colspan="8"></td>';
+  const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
+  html += '<tr>' + rowLead(`<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`, '');
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
@@ -320,36 +360,6 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   html += '</tr>';
 
   html += '</tbody></table>';
-
-  // Compute bust probability: P(no bet wins)
-  // Enumerate all 4^5 = 1024 arena outcomes
-  let bustProb = 0;
-  for (let o = 0; o < 1024; o++) {
-    // Decode outcome: which pirate wins each arena (0-3)
-    const winners = [o & 3, (o >> 2) & 3, (o >> 4) & 3, (o >> 6) & 3, (o >> 8) & 3];
-    let outcomeProb = 1;
-    for (let a = 0; a < 5; a++) outcomeProb *= probs[a][winners[a]];
-    if (outcomeProb < 1e-15) continue;
-
-    // Check if any bet wins this outcome
-    let anyBetWins = false;
-    for (const bet of bets) {
-      let betWins = true;
-      for (const s of bet.selections) {
-        if (winners[s.arena] !== s.pirateIdx) { betWins = false; break; }
-      }
-      if (betWins) { anyBetWins = true; break; }
-    }
-    if (!anyBetWins) bustProb += outcomeProb;
-  }
-
-  // Summary
-  const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
-  html += '<table class="summary-table">';
-  html += `<tr><td class="label">Total Net Expected:</td><td class="value ev-positive">+${totalNet.toFixed(2)}</td></tr>`;
-  html += `<tr><td class="label">Bust Chance:</td><td class="value">${(bustProb * 100).toFixed(1)}%</td></tr>`;
-  html += `<tr><td class="label">NeoFood Club:</td><td class="value"><a href="${nfcUrl}" target="_blank" style="color:#5588cc">${nfcUrl}</a></td></tr>`;
-  html += '</table>';
 
   document.getElementById('mainContent').innerHTML = html;
 }
