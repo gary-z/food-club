@@ -7,12 +7,6 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; margin: 0 auto; font-size: 13px; }
-  h1 { color: #e94560; margin-bottom: 4px; }
-  .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-  .controls label { font-size: 13px; color: #aaa; }
-  .controls input { background: #16213e; border: 1px solid #333; color: #fff; padding: 5px 8px; border-radius: 4px; width: 90px; font-size: 13px; }
-  button { background: #e94560; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-  button:hover { background: #c73550; }
   .status { margin: 8px 0; font-size: 13px; color: #aaa; }
   .status.error { color: #e94560; }
   /* Main combined table */
@@ -69,23 +63,28 @@
   .nfc-link { color: #5588cc; font-size: 11px; white-space: nowrap; }
   .make-bet { background: #e94560; color: #fff; padding: 2px 8px; border-radius: 3px; text-decoration: none; font-size: 11px; white-space: nowrap; }
   .make-bet:hover { background: #c73550; }
+
+  /* Bet amount input: sits in the last row, immediately left of the first Bet
+     button. Spinners are hidden so the column stays as narrow as the odds. */
+  .bet-amount { width: 64px; background: #16213e; border: 1px solid #333; color: #fff; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 11px; text-align: right; appearance: textfield; -moz-appearance: textfield; }
+  .bet-amount::-webkit-outer-spin-button, .bet-amount::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
 </head>
 <body>
-
-<h1>Food Club Bet Advisor</h1>
-
-<div class="controls">
-  <label>Bet Amount: <input type="number" id="betAmountInput"></label>
-  <label>Max Payout: <input type="number" id="maxPayoutInput" value="56"></label>
-  <button onclick="loadLatest()">Reload</button>
-</div>
 
 <div id="status" class="status"></div>
 <div id="mainContent"></div>
 
 <script src="foodclub.js"></script>
 <script>
+// Neopets caps a single bet's winnings at 1,000,000 NP.
+const MAX_WINNINGS = 1000000;
+
+// Round data and bet amount for whatever is currently on screen. The table is
+// re-rendered from these whenever the bet amount changes.
+let state = { roundData: null, arenas: null, probs: null, betAmount: null };
+let refreshTimer = null;
+
 function setStatus(msg, isError) {
   const el = document.getElementById('status');
   el.textContent = msg;
@@ -105,8 +104,7 @@ async function loadLatest() {
     const resp = await fetch('https://cdn.neofood.club/current_round.txt');
     if (!resp.ok) throw new Error(`Failed to fetch current round (${resp.status})`);
     const roundNum = parseInt((await resp.text()).trim());
-    const betInput = document.getElementById('betAmountInput');
-    if (!betInput.value) betInput.value = defaultBetAmount(roundNum);
+    if (!state.betAmount) state.betAmount = defaultBetAmount(roundNum);
     const data = await fetchRound(roundNum);
     processRound(data);
   } catch (e) {
@@ -120,21 +118,46 @@ function defaultBetAmount(roundNum) {
 }
 
 function processRound(roundData) {
-  const arenas = parseRound(roundData);
-  const probs = computeAllProbs(arenas);
+  state.roundData = roundData;
+  state.arenas = parseRound(roundData);
+  state.probs = computeAllProbs(state.arenas);
+  setStatus('');
+  render();
+}
 
-  const maxPayoutRatio = parseInt(document.getElementById('maxPayoutInput').value) || 56;
+// Rebuild the table from the cached round. Only the bet amount changes between
+// renders, so the per-pirate probabilities are computed once in processRound().
+function render() {
+  // Payout beyond the winnings cap is wasted, so the cap on a bet's payout
+  // multiplier follows directly from how much is wagered.
+  const maxPayoutRatio = Math.floor(MAX_WINNINGS / state.betAmount);
 
-  const bets = generateBets(arenas, probs, {
+  const bets = generateBets(state.arenas, state.probs, {
     maxBets: 10,
     maxPayoutRatio,
     min2sProb: 0.55,
     minJump: 1,
   });
 
-  setStatus('');
+  const hadFocus = document.activeElement && document.activeElement.id === 'betAmountInput';
+  renderMain(state.arenas, state.probs, bets, state.roundData);
 
-  renderMain(arenas, probs, bets, maxPayoutRatio, roundData);
+  const input = document.getElementById('betAmountInput');
+  input.addEventListener('input', onBetAmountInput);
+  if (hadFocus) input.focus();
+}
+
+// Re-run the computation as the bet amount is edited, debounced so a partially
+// typed number doesn't trigger a render on every keystroke.
+function onBetAmountInput(e) {
+  const amount = parseInt(e.target.value);
+  // Ignore empty/invalid input; keep showing the last good amount's bets.
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => {
+    state.betAmount = amount;
+    render();
+  }, 300);
 }
 
 function pirateStrClass(pirateId) {
@@ -187,7 +210,7 @@ function makeBetUrl(bet, arenas, maxBet) {
   }
   params.push(`bet_amount=${maxBet}`);
   params.push(`total_odds=${bet.payout}`);
-  params.push(`winnings=${Math.min(bet.payout * maxBet, 1000000)}`);
+  params.push(`winnings=${Math.min(bet.payout * maxBet, MAX_WINNINGS)}`);
   params.push(`type=bet`);
   return `https://www.neopets.com/pirates/process_foodclub.phtml?${params.join('&')}`;
 }
@@ -216,7 +239,7 @@ function computeBustProb(probs, bets) {
   return bustProb;
 }
 
-function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
+function renderMain(arenas, probs, bets, roundData) {
   const numBets = bets.length;
   const bustProb = computeBustProb(probs, bets);
 
@@ -349,10 +372,12 @@ function renderMain(arenas, probs, bets, maxPayoutRatio, roundData) {
   }
   html += '</tr>';
 
-  // Make Bet row, with the NeoFood Club link to the left of the buttons
-  const maxBet = parseInt(document.getElementById('betAmountInput').value) || defaultBetAmount(roundData.round);
+  // Make Bet row: NeoFood Club link at the left edge, then the bet amount in
+  // the column immediately before the Bet buttons.
+  const maxBet = state.betAmount;
   const nfcUrl = makeNeoFoodClubUrl(roundData.round, bets);
-  html += '<tr>' + rowLead(`<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`, '');
+  const betInput = `<input type="number" id="betAmountInput" class="bet-amount" min="1" value="${maxBet}" title="Bet amount" aria-label="Bet amount">`;
+  html += '<tr>' + rowLead(`<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`, betInput);
   for (let b = 0; b < numBets; b++) {
     const url = makeBetUrl(bets[b], arenas, maxBet);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
