@@ -10,6 +10,13 @@
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; margin: 0 auto; font-size: 13px; }
   .status { margin: 8px 0; font-size: 13px; color: #aaa; }
   .status.error { color: #e94560; }
+
+  /* The table is wider than a phone screen, so it scrolls inside its own
+     container rather than widening the document. If the document itself
+     overflows horizontally, mobile Chrome lowers the minimum page scale to fit
+     it, which stretches the scrollable page to the zoomed-out viewport height —
+     several screens of empty background below the table. */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   /* Main combined table */
   /* width:auto so every column sizes to its content; stretching the table to the
      full page width would only spread the bet columns apart. */
@@ -78,7 +85,7 @@
 <body>
 
 <div id="status" class="status"></div>
-<div id="mainContent"></div>
+<div id="mainContent" class="table-scroll"></div>
 
 <script src="foodclub.js"></script>
 <script>
