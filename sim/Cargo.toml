@@ -8,6 +8,10 @@ name = "backtest"
 path = "src/backtest.rs"
 
 [[bin]]
+name = "betlimit"
+path = "src/betlimit.rs"
+
+[[bin]]
 name = "food_unified"
 path = "src/food_unified.rs"
 

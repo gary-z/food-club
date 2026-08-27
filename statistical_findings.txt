@@ -450,6 +450,49 @@
     discovery/validation split with bootstrap family-wise calibration, rolling
     windows, and parlays built from the worst model-p leg per arena).
 
+## Wager sizing against the 1,000,000 winnings cap
+
+42. **The bet limit outgrows the winnings cap almost immediately, but full-limit
+    wagering stays near-optimal for thousands of rounds.** A wager w on a bet with
+    total odds O pays min(w*O, 1e6), so expected profit is p*min(w*O, 1e6) - w:
+    linear up to w*O = 1e6, then falling at slope -1. The profit-maximising wager
+    is therefore min(L, floor(1e6/O)) for a bet limit L, and wagering below the
+    limit is optimal exactly when O > 1e6/L. Since the shortest possible bet is a
+    single 2:1 pirate, L > 500,000 caps every bet that exists — which is exactly
+    where neofood.club pins its max-bet ceiling (`vc=5e5` in reference.js).
+    Sweeping L over the 1193 modern rounds, comparing per-bet optimal wagers
+    against the deployed policy (full limit on every bet, payout multiplier capped
+    at floor(1e6/L)), both taking their own top 10:
+      L        cap  EV/day (sized)  EV/day (full)  gain   sub-limit bets/day
+      1,000   1000         11,708        11,702   0.05%   0.13
+      10,000   100        108,464       108,029   0.40%   0.79
+      16,792    59        173,533       172,517   0.59%   0.91
+      50,000    20        429,766       419,479   2.45%   2.00
+      130,348    7        859,135       786,383   9.25%   6.09
+      500,000    2      1,347,193       453,254 197.23%   8.08
+    Thresholds: some sub-limit bet is optimal from L ~ 23 NP (0.1% of days, worth
+    nothing); sizing is worth >= 0.5% at L ~ 10,800, >= 1% at ~22,500, >= 5% at
+    ~84,000, >= 25% at ~175,000. At +2 NP of limit per round those are ~3,000
+    rounds behind, and ~2,900 / ~33,600 / ~79,000 rounds ahead. Using model
+    probabilities for every leg instead of the opening-odds floor for jumped legs
+    moves the thresholds to 9,352 / 19,441 / 72,583 / 174,679 — same picture.
+    The reason full-limit wagering survives so long is substitution, not luck: a
+    parlay leg that is exactly break-even (a jumped pirate priced at its floor,
+    finding 30) leaves the EV ratio unchanged while multiplying the odds, so the
+    selector can shed odds to fit under floor(1e6/L) at no cost. Mean odds of the
+    best bet of the day falls from 438 at L=20 to 24 at L=16,570 to 4 at L=500,000.
+    That substitution runs out once floor(1e6/L) drops near the odds of an anchor
+    itself, which is what drives the blow-up past L ~ 130,000.
+    Note the payout cap is not the binding reason to bet small: at L=16,792 the
+    slate risks 165k/day and loses money on 60% of days, so full-size wagering is
+    log-optimal only above a bankroll of ~824k NP (median day; 2.7M at the 90th
+    percentile). Bankroll, not the cap, is what should shrink wagers today.
+    Reproduce: `cargo run --release --bin betlimit` for the sweep,
+    `--detail <L...>` for per-limit slates and bankroll, `--mc` for the PMF and
+    payout-accounting checks (worst z ~2.6 over 120 cells at 2M trials/arena;
+    analytic vs simulated portfolio EV within 0.2%). `--model-probs` swaps the
+    leg-probability convention.
+
 ## Best models
 
 - **Model 1** (baseline): BASE=112, bulk fav (fd=15), 4 rolls, quantize /14,
