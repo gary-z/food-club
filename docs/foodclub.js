@@ -298,11 +298,25 @@ function computeAllProbs(arenas) {
 
 // Generate bets using the current_exploit strategy:
 // Anchors: opening_odds=2 with model p >= min2sProb, OR current_odds >= opening + minJump
-// All payouts use current odds. Only keep bets with EV >= 1.0. Top N by EV.
+// All payouts use current odds. Only keep bets with EV >= 1.0.
+function optimalBetAmount(winProb, payout, maxBetAmount, maxWinnings) {
+  if (!maxBetAmount || payout * maxBetAmount <= maxWinnings) return maxBetAmount;
+
+  const belowCap = Math.floor(maxWinnings / payout);
+  const candidates = [Math.max(1, belowCap), Math.min(maxBetAmount, belowCap + 1)];
+  return candidates.reduce((best, amount) => {
+    const gain = winProb * Math.min(payout * amount, maxWinnings) - amount;
+    const bestGain = winProb * Math.min(payout * best, maxWinnings) - best;
+    return gain > bestGain ? amount : best;
+  });
+}
+
 function generateBets(arenas, probs, options = {}) {
   const {
     maxBets = 10,
     maxPayoutRatio = 60, // max payout multiplier per bet
+    maxBetAmount = null,
+    maxWinnings = 1000000,
     min2sProb = 0.55,
     minJump = 1,
   } = options;
@@ -358,7 +372,7 @@ function generateBets(arenas, probs, options = {}) {
             ? 1.0 / (arenas[ai].openingOdds[pi] + 1)
             : probs[ai][pi];
           winProb *= prob;
-          payout = Math.min(payout * arenas[ai].currentOdds[pi], maxPayoutRatio);
+          payout *= arenas[ai].currentOdds[pi];
           selections.push({
             arena: ai,
             pirateIdx: pi,
@@ -369,9 +383,14 @@ function generateBets(arenas, probs, options = {}) {
           });
         }
 
+        if (!maxBetAmount) payout = Math.min(payout, maxPayoutRatio);
         const ev = winProb * payout;
         if (ev >= 1.0) {
-          possibleBets.push({ selections, winProb, payout, ev });
+          const amount = optimalBetAmount(winProb, payout, maxBetAmount, maxWinnings);
+          const expectedGain = maxBetAmount
+            ? (winProb * Math.min(payout * amount, maxWinnings) - amount) / maxBetAmount
+            : ev - 1;
+          possibleBets.push({ selections, winProb, payout, ev, amount, expectedGain });
         }
       }
 
@@ -391,8 +410,7 @@ function generateBets(arenas, probs, options = {}) {
     }
   }
 
-  // Sort by EV descending, take top N
-  possibleBets.sort((a, b) => b.ev - a.ev);
+  possibleBets.sort((a, b) => b.expectedGain - a.expectedGain);
   return possibleBets.slice(0, maxBets);
 }
 
@@ -404,6 +422,6 @@ if (typeof module !== 'undefined' && module.exports) {
     courseCounts, diceSumPmf, getRollTable, pirateScorePmf,
     winProbsFromPmfs, arenaWinProbs, oddsProbBounds,
     clampAndRedistribute, arenaWinProbsClamped,
-    parseRound, computeAllProbs, generateBets,
+    parseRound, computeAllProbs, optimalBetAmount, generateBets,
   };
 }

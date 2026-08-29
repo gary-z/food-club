@@ -1,6 +1,6 @@
 const {
   courseCounts, arenaWinProbs, generateBets, computeAllProbs, PIRATES,
-  oddsProbBounds, clampAndRedistribute,
+  oddsProbBounds, clampAndRedistribute, optimalBetAmount,
 } = require('./foodclub.js');
 
 // Test vectors for Round 9811 (with corrected food ID ordering matching neofood.club API)
@@ -243,6 +243,29 @@ function makeArena(pirateIds, foodIds, openingOdds, currentOdds) {
   } else {
     console.log('  FAIL: found bet with EV < 1.0');
     failed++;
+  }
+}
+
+console.log('Testing capped wager optimization...');
+{
+  check('uses max bet below cap', optimalBetAmount(0.2, 5, 100, 1000), 100);
+  check('uses amount below cap boundary', optimalBetAmount(0.08, 13, 100, 1000), 76);
+  check('uses amount above cap boundary when remainder is valuable', optimalBetAmount(0.9, 13, 100, 1000), 77);
+}
+
+// Expected gain remains measured in max bets, including reduced wagers.
+{
+  const arenas = [makeArena([1, 2, 3, 4], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    [2, 5, 7, 13], [2, 5, 7, 13])];
+  const probs = [[0.6, 0.15, 0.15, 0.1]];
+  const bets = generateBets(arenas, probs, { maxBetAmount: 100000, maxWinnings: 100000 });
+  const bet = bets.find(candidate => candidate.selections[0].pirateIdx === 0);
+  const expected = (0.6 * Math.min(2 * bet.amount, 100000) - bet.amount) / 100000;
+  check('reduced wager amount', bet.amount, 50000);
+  check('expected gain in max bets', bet.expectedGain, expected);
+  for (let i = 1; i < bets.length; i++) {
+    if (bets[i - 1].expectedGain + 1e-12 >= bets[i].expectedGain) passed++;
+    else { console.log('  FAIL: bets are not sorted by expected gain'); failed++; }
   }
 }
 
