@@ -140,13 +140,10 @@ function processRound(roundData) {
 // Rebuild the table from the cached round. Only the bet amount changes between
 // renders, so the per-pirate probabilities are computed once in processRound().
 function render() {
-  // Payout beyond the winnings cap is wasted, so the cap on a bet's payout
-  // multiplier follows directly from how much is wagered.
-  const maxPayoutRatio = Math.floor(MAX_WINNINGS / state.betAmount);
-
   const bets = generateBets(state.arenas, state.probs, {
     maxBets: 10,
-    maxPayoutRatio,
+    maxBetAmount: state.betAmount,
+    maxWinnings: MAX_WINNINGS,
     min2sProb: 0.55,
     minJump: 1,
   });
@@ -211,7 +208,7 @@ function makeNeoFoodClubUrl(roundNum, bets) {
   return `https://neofood.club/#round=${roundNum}&b=${betStr}`;
 }
 
-function makeBetUrl(bet, arenas, maxBet) {
+function makeBetUrl(bet, arenas) {
   const params = [];
   for (let a = 0; a < 5; a++) {
     const sel = bet.selections.find(s => s.arena === a);
@@ -220,9 +217,9 @@ function makeBetUrl(bet, arenas, maxBet) {
       params.push(`matches[]=${a + 1}`);
     }
   }
-  params.push(`bet_amount=${maxBet}`);
+  params.push(`bet_amount=${bet.amount}`);
   params.push(`total_odds=${bet.payout}`);
-  params.push(`winnings=${Math.min(bet.payout * maxBet, MAX_WINNINGS)}`);
+  params.push(`winnings=${Math.min(bet.payout * bet.amount, MAX_WINNINGS)}`);
   params.push(`type=bet`);
   return `https://www.neopets.com/pirates/process_foodclub.phtml?${params.join('&')}`;
 }
@@ -374,11 +371,11 @@ function renderMain(arenas, probs, bets, roundData) {
   html += '</tr>';
 
   // Expected row, with the total to the left of the label
-  const totalNet = bets.reduce((sum, bet) => sum + (bet.ev - 1), 0);
+  const totalNet = bets.reduce((sum, bet) => sum + bet.expectedGain, 0);
   const totalStat = sumStat('total', `${totalNet >= 0 ? '+' : ''}${totalNet.toFixed(2)}`, totalNet >= 0 ? 'ev-positive' : '');
   html += '<tr>' + rowLead(totalStat, 'Expected');
   for (let b = 0; b < numBets; b++) {
-    const net = bets[b].ev - 1;
+    const net = bets[b].expectedGain;
     const cls = net >= 0 ? 'ev-positive' : '';
     html += `<td class="num ${cls}">${net >= 0 ? '+' : ''}${net.toFixed(2)}</td>`;
   }
@@ -393,7 +390,7 @@ function renderMain(arenas, probs, bets, roundData) {
     `<span class="bet-amount-unit">NP</span></span>`;
   html += '<tr>' + rowLead(`<a class="nfc-link" href="${nfcUrl}" target="_blank">NeoFood Club</a>`, betInput);
   for (let b = 0; b < numBets; b++) {
-    const url = makeBetUrl(bets[b], arenas, maxBet);
+    const url = makeBetUrl(bets[b], arenas);
     html += `<td><a class="make-bet" href="${url}" target="_blank">Bet</a></td>`;
   }
   html += '</tr>';
